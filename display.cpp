@@ -1,4 +1,5 @@
 #import "WProgram.h"       /* Needed for access to Serial library */
+#import <assert.h>
 
 typedef struct {
   char choice[6];          /* 6-character string for this choice. No terminator, use spaces for unused characters. */
@@ -29,3 +30,13 @@ void display_draw_entry(MENU_ENTRY entry)
   Serial.print("  ");
   Serial.print(entry.choices[1].choice);
 }
+
+/* Process a "choice" for the current MENU_ENTRY 'entry'. Basically,
+   just call the callback! */
+void display_process(MENU_ENTRY entry, int choice)
+{
+  // Currently we only suppose 2 possible choices
+  assert(choice < 2 || choice >= 0);
+  entry.choices[choice].callback();
+}
+  
