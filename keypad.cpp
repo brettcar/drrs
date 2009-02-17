@@ -8,3 +8,8 @@ void keypad_isr()
  // Else, for now, just CLEAR and then print to LCD panel
 }
 
+void foo()
+{
+	// bar
+}
+
