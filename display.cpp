@@ -36,7 +36,7 @@ void display_draw_entry(MENU_ENTRY entry)
 void display_process(MENU_ENTRY entry, int choice)
 {
   // Currently we only suppose 2 possible choices
-  assert(choice < 2 || choice >= 0);
+  assert(choice < 2 && choice >= 0);
   entry.choices[choice].callback();
 }
   
