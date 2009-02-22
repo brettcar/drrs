@@ -6,9 +6,7 @@ const int txvr_mosi_port = 11;
 const int txvr_miso_port = 12;
 const int txvr_sck_port = 13;
 const int keypad_uart_port = 0;
-const char TXVR_NOP_CMD = 0xFF;
-  
-
+const char TXVR_NOP_CMD = 0xFF;  
 
 volatile bool txvr_rx_irq = false;
 volatile bool txvr_tx_irq = false;
@@ -22,7 +20,7 @@ volatile bool txvr_tx_irq = false;
 extern void setup_keypad(void);
 extern void display_mainmenu(void);
 extern void display_clear(void);
-
+extern void display_setup(void);
 const char *messages[] = { "Hello", "Epic!", "Goal!", "Pasta", "DKCX." };
 const char ack[] = {'A', 'C', 'K', '.', ' '};
 
@@ -44,11 +42,13 @@ setup ()
   int clr = SPSR;
   clr = SPDR;
   delay (10);
-  
-  Serial.print("before");  
+
+  delay(5); 
   setup_txvr ();
+  delay(100);
   setup_lcd ();
   setup_keypad();
+  display_setup();
   Serial.print ("Setup complete. ");
   delay(500);
   display_mainmenu();
@@ -57,7 +57,7 @@ setup ()
 void
 setup_lcd () 
 {
-  Serial.begin (9600);
+  Serial.begin (9600);  
   // Clear LCD
   Serial.print (0xFE, BYTE); 
   Serial.print (0x01, BYTE);

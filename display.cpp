@@ -22,8 +22,6 @@ typedef struct {
 MENU_ENTRY entries[10];
 int currChoice;
 
-
-
 void display_clear(void) {
 #ifdef CLEAR_FAST
   Serial.print("                                "); // 32 spaces
@@ -41,7 +39,7 @@ void display_draw_entry(MENU_ENTRY entry)
     
   Serial.print("<");
   for(int i = 0; i < 6; i++)
-    Serial.print(entry.choices[0].choice[i]);
+    Serial.print(entry.choices[currChoice].choice[i]);
     
   Serial.print("  ");
   Serial.print("NEXT  ");
@@ -49,31 +47,31 @@ void display_draw_entry(MENU_ENTRY entry)
 
 void display_setup(void) 
 {
-  int size = 5 * sizeof(MENU_ENTRY);
   currChoice = 0;
   
-  char *tmpStr = "MAIN MENU        ";
+  char *tmpStr = "MAIN MENU       ";
   memcpy(entries[0].message, tmpStr, 16);
-
+  
   tmpStr = "INBOX ";
   memcpy(entries[0].choices[0].choice, tmpStr, 6);
   entries[0].choices[0].callback = &display_inbox;
-  /*
-  entries[0].choices[1].choice = "STATUS";
+  
+  tmpStr = "STATUS";
+  memcpy(entries[0].choices[1].choice, tmpStr, 6);
   entries[0].choices[1].callback = &display_status; 
-
-  entries[0].choices[2].choice = "NEWMSG";
+  
+  tmpStr = "NEWMSG";
+  memcpy(entries[0].choices[2].choice, tmpStr, 6);
   entries[0].choices[2].callback = &display_newmsg;
 
-  entries[0].choices[3].choice = "CONFIG";
-  entries[0].choices[3].callback = &display_config;  
-  */
+  tmpStr = "CONFIG";
+  memcpy(entries[0].choices[3].choice, tmpStr, 6);
+  entries[0].choices[3].callback = &display_config;    
 }
 
 void display_next(void)
 {
   currChoice = (currChoice + 1) % 4;
-//  MENU_ENTRY * currentEntry = (MENU_ENTRY*)entries[0];
   display_draw_entry(entries[0]);
 }
 
@@ -82,6 +80,7 @@ void display_mainmenu(void)
   display_clear();
   display_draw_entry(entries[0]);
 }
+
 void display_inbox(void)
 {
   // To do
