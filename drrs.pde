@@ -20,6 +20,8 @@ volatile bool txvr_tx_irq = false;
 #define KEYPAD_DEBUG // For keypad debugging
 
 extern void setup_keypad(void);
+extern void display_mainmenu(void);
+extern void display_clear(void);
 
 const char *messages[] = { "Hello", "Epic!", "Goal!", "Pasta", "DKCX." };
 const char ack[] = {'A', 'C', 'K', '.', ' '};
@@ -47,9 +49,9 @@ setup ()
   setup_txvr ();
   setup_lcd ();
   setup_keypad();
-  delay(1000); 
   Serial.print ("Setup complete. ");
-  delay (2000);
+  delay(500);
+  display_mainmenu();
 }
 
 void

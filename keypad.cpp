@@ -1,5 +1,6 @@
 #import "WProgram.h"       /* Needed for access to Serial library */
 
+extern void display_next(void);
 extern void display_clear(void);
 void keypad_isr(void);
 
@@ -25,6 +26,8 @@ void setup_keypad()
   pinMode(keypad_D3, INPUT);
   attachInterrupt(1, keypad_isr, FALLING);
   Serial.print("Setup Complete");
+  display_clear();
+  
 }
 
 void keypad_isr()
@@ -41,7 +44,7 @@ void keypad_isr()
  }
  else if (val == 0x0F)  // Choice 1 - D
  { 
-    Serial.print("Choice 1 ");
+    display_next();
  }  
  else // Else, for now, just CLEAR and then print to LCD panel
  {
