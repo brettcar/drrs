@@ -3,6 +3,7 @@
 #import "display.h"
 
 MENU_ENTRY entries[10];
+int currEntry;
 int currChoice;
 int currMsg;
 char recMessages[2][32];          
@@ -60,17 +61,18 @@ void display_setup(void)
 void display_next(void)
 {  
   currChoice = (currChoice + 1) % 2; // <-- This mod value can't be hardcoded (varies depending on the current menu)
-  display_draw_entry(entries[0]);
+  display_draw_entry(entries[currEntry]);
 }
 
 void display_mainmenu(void)
 {
+  currEntry = 0;
   display_clear();
-  display_draw_entry(entries[0]);
+  display_draw_entry(entries[currEntry]);
 }
 
 void display_inbox_setup(void)
-{
+{  
   char* tmpStr = "INBOX           ";
   memcpy(entries[1].message, tmpStr, 16);
   
@@ -90,11 +92,12 @@ void display_show_currMsg(void)
 
 void display_inbox(void)
 {
-  // To do 
+  currEntry = 1; 
   for(currMsg = 0; strlen(recMessages[currMsg]) > 0; currMsg++)
   {
      entries[1].choices[currMsg].callback = &display_show_currMsg;
   }
+  display_draw_entry(entries[currEntry]);
   
 }
 

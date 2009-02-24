@@ -4,6 +4,7 @@
 // Yikes! We need a better way to avoid the use of globals!
 extern int currChoice;
 extern int currMsg;
+extern int currEntry;
 extern MENU_ENTRY entries[10];
 
 
@@ -40,8 +41,8 @@ void keypad_isr()
  // Choice 0 - *
  if (val == 0x0C) 
  {
-    if(currChoice == 0) // Inbox
-      display_process(entries[currChoice], currMsg);   // Yikes, entries is an external global!
+   display_process(entries[currEntry], currMsg);   // Yikes, entries is an external global!
+                                                      // currMsg should be renamed to currItem or something of the like, I think?
     
  }
  else if (val == 0x0F)  // Choice 1 - D
