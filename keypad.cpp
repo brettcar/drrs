@@ -1,9 +1,12 @@
 #import "WProgram.h"       /* Needed for access to Serial library */
+#import "display.h"
 
-extern void display_next(void);
-extern void display_clear(void);
-extern void display_process(MENU_ENTRY, int);
+// Yikes! We need a better way to avoid the use of globals!
 extern int currChoice;
+extern int currMsg;
+extern MENU_ENTRY entries[10];
+
+
 void keypad_isr(void);
 
 const int keypad_D0 = 5;
@@ -38,7 +41,7 @@ void keypad_isr()
  if (val == 0x0C) 
  {
     if(currChoice == 0) // Inbox
-      display_process(entries[currChoice], currMsg);  
+      display_process(entries[currChoice], currMsg);   // Yikes, entries is an external global!
     
  }
  else if (val == 0x0F)  // Choice 1 - D

@@ -1,24 +1,6 @@
 #import "WProgram.h"       /* Needed for access to Serial library */
 #import <assert.h>
-
-void display_inbox_setup(void);
-void display_clear(void);
-void display_inbox(void);
-void display_next(void);
-void display_config(void);
-void display_newmsg(void);
-void display_status(void);
-
-typedef struct {
-  char choice[6];          /* 6-character string for this choice. No terminator, use spaces for unused characters. */
-  void (*callback)(void);  /* Callback to execute when this choice is selected */
-} CHOICE;  
-
-typedef struct {
-  char message[16];        /* 16-character string to display on top line for this menu entry. No terminator, use spaces for unused chars. */
-  CHOICE choices[4];       /* Two choices to display on second line. */
-} MENU_ENTRY;
-
+#import "display.h"
 
 MENU_ENTRY entries[10];
 int currChoice;
@@ -123,7 +105,7 @@ void display_status(void)
 
 void display_newmsg(void)
 {
-`  // To do
+  // To do
 }
 
 void display_config(void)
