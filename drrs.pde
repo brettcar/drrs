@@ -172,8 +172,6 @@ spi_transfer (volatile char data)
   //return the received byte
 }
 
-
-
 // write an 8-bit reg
 void write_txvr_reg(char reg, char val) 
 {

@@ -1,6 +1,7 @@
 #import "WProgram.h"       /* Needed for access to Serial library */
 #import <assert.h>
 
+void display_inbox_setup(void);
 void display_clear(void);
 void display_inbox(void);
 void display_next(void);
@@ -21,6 +22,8 @@ typedef struct {
 
 MENU_ENTRY entries[10];
 int currChoice;
+int currMsg;
+char recMessages[2][32];          
 
 void display_clear(void) {
 #ifdef CLEAR_FAST
@@ -48,7 +51,6 @@ void display_draw_entry(MENU_ENTRY entry)
 void display_setup(void) 
 {
   currChoice = 0;
-  
   char *tmpStr = "MAIN MENU       ";
   memcpy(entries[0].message, tmpStr, 16);
   
@@ -67,11 +69,15 @@ void display_setup(void)
   tmpStr = "CONFIG";
   memcpy(entries[0].choices[3].choice, tmpStr, 6);
   entries[0].choices[3].callback = &display_config;    
+  
+  strcpy(recMessages[0], "This is message 0.");
+  strcpy(recMessages[1], "This is message 1.");
+  display_inbox_setup();
 }
 
 void display_next(void)
-{
-  currChoice = (currChoice + 1) % 4;
+{  
+  currChoice = (currChoice + 1) % 2; // <-- This mod value can't be hardcoded (varies depending on the current menu)
   display_draw_entry(entries[0]);
 }
 
@@ -81,9 +87,33 @@ void display_mainmenu(void)
   display_draw_entry(entries[0]);
 }
 
+void display_inbox_setup(void)
+{
+  char* tmpStr = "INBOX           ";
+  memcpy(entries[1].message, tmpStr, 16);
+  
+  tmpStr = "MSG 1 ";  
+  memcpy(entries[1].choices[0].choice, tmpStr, 6);
+  
+  tmpStr = "MSG 2 ";
+  memcpy(entries[1].choices[1].choice, tmpStr, 6);
+}
+
+void display_show_currMsg(void)
+{
+   display_clear();
+   for(int i = 0; i < strlen(recMessages[currMsg]) ; i++)
+     Serial.print(recMessages[currMsg][i]);
+}
+
 void display_inbox(void)
 {
-  // To do
+  // To do 
+  for(currMsg = 0; strlen(recMessages[currMsg]) > 0; currMsg++)
+  {
+     entries[1].choices[currMsg].callback = &display_show_currMsg;
+  }
+  
 }
 
 void display_status(void)
@@ -93,7 +123,7 @@ void display_status(void)
 
 void display_newmsg(void)
 {
-  // To do
+`  // To do
 }
 
 void display_config(void)
@@ -105,8 +135,8 @@ void display_config(void)
    just call the callback! */
 void display_process(MENU_ENTRY entry, int choice)
 {
-  // Currently we only suppose 2 possible choices
-  assert(choice < 2 && choice >= 0);
+
+//  assert(choice < 2 && choice >= 0);
   entry.choices[choice].callback();
 }
   

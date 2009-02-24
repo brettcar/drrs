@@ -2,6 +2,8 @@
 
 extern void display_next(void);
 extern void display_clear(void);
+extern void display_process(MENU_ENTRY, int);
+extern int currChoice;
 void keypad_isr(void);
 
 const int keypad_D0 = 5;
@@ -14,11 +16,7 @@ const int keypad_D3 = 8;
 // Call keypad_isr when the interreupt is triggered (LOW)
 void setup_keypad()
 {
-  //d5 -> LSB
-  //d6
-  //d7
-  //d8 -> MSB
-  
+  //d5 -> LSB ... d8 -> MSB
   Serial.print("Setup Keypad");
   pinMode(keypad_D0, INPUT);
   pinMode(keypad_D1, INPUT);
@@ -26,8 +24,7 @@ void setup_keypad()
   pinMode(keypad_D3, INPUT);
   attachInterrupt(1, keypad_isr, FALLING);
   Serial.print("Setup Complete");
-  display_clear();
-  
+  display_clear();  
 }
 
 void keypad_isr()
@@ -40,7 +37,9 @@ void keypad_isr()
  // Choice 0 - *
  if (val == 0x0C) 
  {
-   Serial.print("Choice 0 "); 
+    if(currChoice == 0) // Inbox
+      display_process(entries[currChoice], currMsg);  
+    
  }
  else if (val == 0x0F)  // Choice 1 - D
  { 
@@ -52,6 +51,4 @@ void keypad_isr()
    Serial.print(val, HEX);
  }
 }
-
-
 
