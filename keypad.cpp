@@ -45,7 +45,13 @@ void keypad_service()
 {
  if(keypad_if) 
  {
-  uint8_t val = digitalRead(keypad_D0) | (digitalRead(keypad_D1) << 1) | (digitalRead(keypad_D2) << 2) | (digitalRead(keypad_D3) << 3); 
+   uint8_t val;
+
+   keypad_if = false; // Immediately remove interrupt flag, so we
+		      // don't miss any keypresses while processing.
+
+   val = digitalRead(keypad_D0) | (digitalRead(keypad_D1) << 1) | (digitalRead(keypad_D2) << 2) | (digitalRead(keypad_D3) << 3);
+
    // Assumption: data is ready on keypad
    // Read whatever is needed
    // Call display_process if it was a * or #  
@@ -59,10 +65,8 @@ void keypad_service()
        prevKey = -1;
        currKey = -1;  
      }
-     keypad_if = false;
    }
-   // Choice 0 - *
-   else if (val == 0x0C) 
+   else if (val == 0x0C)  // Choice 0 - *
    {
      display_process(entries[currEntry], currChoice);   // Yikes, entries is an external global!
      currChoice = 0;                                    // Reset currChoice after an action item has been selected    
@@ -73,11 +77,10 @@ void keypad_service()
    }  
    else // Else, for now, just CLEAR and then print to LCD panel
    {   
+     // TODO: Remove the behavior for production code.
      display_clear();
      Serial.print(val, HEX);
    } 
-   keypad_if = false; 
  }
-  
 }
 
