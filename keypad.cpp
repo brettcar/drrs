@@ -3,10 +3,8 @@
 
 // Yikes! We need a better way to avoid the use of globals!
 extern int currChoice;
-extern int currMsg;
 extern int currEntry;
 extern MENU_ENTRY entries[10];
-
 
 void keypad_isr(void);
 
@@ -41,8 +39,8 @@ void keypad_isr()
  // Choice 0 - *
  if (val == 0x0C) 
  {
-   display_process(entries[currEntry], currMsg);   // Yikes, entries is an external global!
-                                                      // currMsg should be renamed to currItem or something of the like, I think?
+   display_process(entries[currEntry], currChoice);   // Yikes, entries is an external global!
+   currChoice = 0;                                    // Reset currChoice after an action item has been selected
     
  }
  else if (val == 0x0F)  // Choice 1 - D
@@ -51,6 +49,7 @@ void keypad_isr()
  }  
  else // Else, for now, just CLEAR and then print to LCD panel
  {
+   
    display_clear();
    Serial.print(val, HEX);
  }

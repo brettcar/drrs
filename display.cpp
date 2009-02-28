@@ -2,6 +2,11 @@
 #import <assert.h>
 #import "display.h"
 
+char keymap[][4] = {{' ','1','1','1',}, {'A','B','C','2'}, {'D','E','F','3'}, {' ',' ',' ',' '}, 
+                      {'G','H','I','4'}, {'J','K','L','5'}, {'M','N','O','6'}, {' ',' ',' ',' '},
+                      {'P','Q','R','7'}, {'T','U','V','8'}, {'W','X','Y','9'}, {' ',' ',' ',' '},
+                      {' ', ' ', ' ',' '}, {'Z','Z','Z','0'}};
+                      
 MENU_ENTRY entries[10];
 int currEntry;  // Used to index through MainMenu, Inbox, Config, etc.
 int currChoice; // Used to index through items in above menus (mgs, config options etc.)
@@ -60,8 +65,25 @@ void display_setup(void)
 
 void display_next(void)
 {  
-  currChoice = (currChoice + 1) % 2; // <-- This mod value can't be hardcoded (varies depending on the current menu)
+  currChoice = (currChoice + 1) % 3; // <-- This mod value can't be hardcoded (varies depending on the current menu)
   display_draw_entry(entries[currEntry]);
+}
+
+
+void display_back(void)
+{
+   currChoice = 0; // Reset currChoice
+   currEntry--;    // Go back an entry
+   display_draw_entry(entries[currEntry]); 
+}
+
+// index is the index to add the BACK item in
+void display_addback(int index)
+{
+  char *tmpStr = "BACK  ";
+  memcpy(entries[currEntry].choices[(index - 1)].choice, tmpStr, 6);
+  entries[currEntry].choices[(index - 1)].callback = &display_back;
+  display_draw_entry(entries[currEntry]);    
 }
 
 void display_mainmenu(void)
@@ -85,8 +107,6 @@ void display_inbox_setup(void)
 
 void display_show_currMsg(void)
 {
-   Serial.print("In here");
-   delay(2000);
    display_clear();
    for(int i = 0; i < strlen(recMessages[currChoice]) ; i++)
      Serial.print(recMessages[currChoice][i]);
@@ -98,15 +118,15 @@ void display_inbox(void)
   currEntry = 1; 
   // Start a for loop that's going to find all the msgs in the inbox 
   // And assign them the proper callback function
-  
-  //  entries[currEntry].choices[0].callback = &display_show_currMsg;
-  
-  for(int i = 0; strlen(recMessages[i]) > 0; i++)
+  int i;
+  for(i = 0; strlen(recMessages[i]) > 0; i++)
   {
      entries[currEntry].choices[i].callback = &display_show_currMsg;
   }
-  display_draw_entry(entries[currEntry]);  
+  display_addback(i - 1);
+  
 }
+
 
 void display_status(void)
 {
@@ -116,6 +136,7 @@ void display_status(void)
 void display_newmsg(void)
 {
   // To do
+  
 }
 
 void display_config(void)
