@@ -3,9 +3,9 @@
 #import "display.h"
 
 MENU_ENTRY entries[10];
-int currEntry;
-int currChoice;
-int currMsg;
+int currEntry;  // Used to index through MainMenu, Inbox, Config, etc.
+int currChoice; // Used to index through items in above menus (mgs, config options etc.)
+
 char recMessages[2][32];          
 
 void display_clear(void) {
@@ -85,20 +85,27 @@ void display_inbox_setup(void)
 
 void display_show_currMsg(void)
 {
+   Serial.print("In here");
+   delay(2000);
    display_clear();
-   for(int i = 0; i < strlen(recMessages[currMsg]) ; i++)
-     Serial.print(recMessages[currMsg][i]);
+   for(int i = 0; i < strlen(recMessages[currChoice]) ; i++)
+     Serial.print(recMessages[currChoice][i]);
 }
 
 void display_inbox(void)
 {
+  // Inbox is MENU_ENTRY 1 (entries[1])
   currEntry = 1; 
-  for(currMsg = 0; strlen(recMessages[currMsg]) > 0; currMsg++)
-  {
-     entries[1].choices[currMsg].callback = &display_show_currMsg;
-  }
-  display_draw_entry(entries[currEntry]);
+  // Start a for loop that's going to find all the msgs in the inbox 
+  // And assign them the proper callback function
   
+  //  entries[currEntry].choices[0].callback = &display_show_currMsg;
+  
+  for(int i = 0; strlen(recMessages[i]) > 0; i++)
+  {
+     entries[currEntry].choices[i].callback = &display_show_currMsg;
+  }
+  display_draw_entry(entries[currEntry]);  
 }
 
 void display_status(void)
@@ -120,7 +127,6 @@ void display_config(void)
    just call the callback! */
 void display_process(MENU_ENTRY entry, int choice)
 {
-
 //  assert(choice < 2 && choice >= 0);
   entry.choices[choice].callback();
 }
