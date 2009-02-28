@@ -17,12 +17,17 @@ volatile bool txvr_tx_irq = false;
 */
 #define KEYPAD_DEBUG // For keypad debugging
 
+extern void keypad_service(void);
 extern void setup_keypad(void);
 extern void display_mainmenu(void);
 extern void display_clear(void);
 extern void display_setup(void);
 const char *messages[] = { "Hello", "Epic!", "Goal!", "Pasta", "DKCX." };
 const char ack[] = {'A', 'C', 'K', '.', ' '};
+
+boolean keypad_if;
+boolean display_if;
+boolean trxvr_if;
 
 void
 setup ()
@@ -68,6 +73,7 @@ loop ()
 {
   #ifdef KEYPAD_DEBUG
   // Do nothing, wait for keypad interrupt    
+    keypad_service();
   #endif
   #ifdef BOARD_1
     static int i = 0;
@@ -191,3 +197,4 @@ char read_txvr_reg(char reg)
   digitalWrite(txvr_csn_port, HIGH);
   return value;
 }
+

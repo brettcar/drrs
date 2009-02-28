@@ -10,6 +10,11 @@ typedef struct {
   CHOICE choices[4];       /* Two choices to display on second line. */
 } MENU_ENTRY;
 
+const char keymap[][4] = {{' ','1','1','1',}, {'A','B','C','2'}, {'D','E','F','3'}, {' ',' ',' ',' '}, 
+                      {'G','H','I','4'}, {'J','K','L','5'}, {'M','N','O','6'}, {' ',' ',' ',' '},
+                      {'P','Q','R','7'}, {'T','U','V','8'}, {'W','X','Y','9'}, {' ',' ',' ',' '},
+                      {' ', ' ', ' ',' '}, {'Z','Z','Z','0'}};
+                      
 void display_inbox_setup(void);
 void display_clear(void);
 void display_inbox(void);

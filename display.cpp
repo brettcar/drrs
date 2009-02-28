@@ -2,14 +2,13 @@
 #import <assert.h>
 #import "display.h"
 
-char keymap[][4] = {{' ','1','1','1',}, {'A','B','C','2'}, {'D','E','F','3'}, {' ',' ',' ',' '}, 
-                      {'G','H','I','4'}, {'J','K','L','5'}, {'M','N','O','6'}, {' ',' ',' ',' '},
-                      {'P','Q','R','7'}, {'T','U','V','8'}, {'W','X','Y','9'}, {' ',' ',' ',' '},
-                      {' ', ' ', ' ',' '}, {'Z','Z','Z','0'}};
-                      
+
+extern boolean keypad_if;
+
 MENU_ENTRY entries[10];
 int currEntry;  // Used to index through MainMenu, Inbox, Config, etc.
 int currChoice; // Used to index through items in above menus (mgs, config options etc.)
+boolean inNewMsg;
 
 char recMessages[2][32];          
 
@@ -81,8 +80,8 @@ void display_back(void)
 void display_addback(int index)
 {
   char *tmpStr = "BACK  ";
-  memcpy(entries[currEntry].choices[(index - 1)].choice, tmpStr, 6);
-  entries[currEntry].choices[(index - 1)].callback = &display_back;
+  memcpy(entries[currEntry].choices[(index)].choice, tmpStr, 6);
+  entries[currEntry].choices[(index)].callback = &display_back;
   display_draw_entry(entries[currEntry]);    
 }
 
@@ -136,7 +135,10 @@ void display_status(void)
 void display_newmsg(void)
 {
   // To do
-  
+  currEntry = 2;
+  inNewMsg = true;
+  keypad_if = true;  
+  display_clear();
 }
 
 void display_config(void)
