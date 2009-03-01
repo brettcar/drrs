@@ -58,9 +58,15 @@ void keypad_service()
    if(inNewMsg)
    {
      prevKey = currKey;
-     currKey = val;  
+     currKey = val;
+     // Remap the 0 (0/OPER) and the 4 (4/GHI) keys to button 0 (1) and button 3 (A)          
      if(prevKey != -1) 
      {
+       if(val == 0xD)
+         currKey = 0x0;
+     else if(val != 0x04)
+         currKey = val + 0x01;
+         
        Serial.print(keymap[prevKey][currKey]);
        prevKey = -1;
        currKey = -1;  
