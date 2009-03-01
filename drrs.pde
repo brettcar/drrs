@@ -32,14 +32,7 @@ boolean trxvr_if;
 void
 setup ()
 {
-  pinMode (txvr_csn_port, OUTPUT);
-  pinMode (txvr_sck_port, OUTPUT);
-  pinMode (txvr_mosi_port, OUTPUT);
-  pinMode (txvr_miso_port, INPUT);
-  pinMode (txvr_ce_port, OUTPUT);
-  digitalWrite(txvr_ce_port, LOW);
-  pinMode (txvr_irq_port, INPUT);
-  digitalWrite (txvr_csn_port, HIGH);
+  setup_txvr_ports();
 
   pinMode(keypad_uart_port, INPUT);
   pinMode(keypad_irq_port, INPUT);
