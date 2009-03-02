@@ -5,8 +5,6 @@
 const int keypad_irq_port = 3; // Keypad interrupt pin d3
 const int keypad_uart_port = 0;
 
-const char TXVR_NOP_CMD = 0xFF;  
-
 /*
 #define BOARD_1   // BOARD_1 = Primary Transmitter
 #deinfe BOARD_2   // BOARD_2 = Primarty Receiver
