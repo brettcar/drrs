@@ -24,4 +24,5 @@ void display_newmsg(void);
 void display_next(void);
 void display_process(MENU_ENTRY entry, int choice);
 void display_setup(void);
+void display_setup_lcd(void);
 void display_status(void);

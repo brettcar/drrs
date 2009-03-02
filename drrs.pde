@@ -23,8 +23,7 @@ boolean keypad_if;
 boolean display_if;
 boolean trxvr_if;
 
-void
-setup ()
+void setup (void)
 {
   txvr_setup_ports();
 
@@ -38,7 +37,7 @@ setup ()
   delay(5); 
   txvr_setup ();
   delay(100);
-  setup_lcd ();
+  display_setup_lcd ();
   setup_keypad();
   display_setup();
   Serial.print ("Setup complete. ");
@@ -46,17 +45,7 @@ setup ()
   display_mainmenu();
 }
 
-void
-setup_lcd () 
-{
-  Serial.begin (9600);  
-  // Clear LCD
-  Serial.print (0xFE, BYTE); 
-  Serial.print (0x01, BYTE);
-}
-
-void
-loop ()
+void loop(void)
 {
   #ifdef KEYPAD_DEBUG
   // Do nothing, wait for keypad interrupt    
@@ -104,8 +93,7 @@ loop ()
   #endif
 }
 
-char
-spi_transfer (volatile char data)
+char spi_transfer (volatile char data)
 {
   SPDR = data;
   //Start the transmission
