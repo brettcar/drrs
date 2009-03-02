@@ -32,6 +32,14 @@ void display_draw_entry(MENU_ENTRY entry)
   Serial.print("NEXT  ");
 }
 
+void display_setup_lcd(void)
+{
+  Serial.begin (9600);  
+  // Clear LCD
+  Serial.print (0xFE, BYTE); 
+  Serial.print (0x01, BYTE);
+}
+
 void display_setup(void) 
 {
   currChoice = 0;
@@ -149,4 +157,4 @@ void display_process(MENU_ENTRY entry, int choice)
 //  assert(choice < 2 && choice >= 0);
   entry.choices[choice].callback();
 }
-  
+

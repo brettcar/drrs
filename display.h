@@ -15,11 +15,14 @@ const char keymap[][5] = {{'1',' ',' ',' ',' '}, {'2','A','B','C',' '}, {'3','D'
                       {'7','P','Q','R','S'}, {'8','T','U','V',' '}, {'9','W','X','Y','Z'}, {' ',' ',' ',' '},
                       {' ', ' ', ' ',' '}, {'0',' ',' ',' ',' '}};
                       
-void display_inbox_setup(void);
 void display_clear(void);
-void display_inbox(void);
-void display_next(void);
 void display_config(void);
+void display_inbox(void);
+void display_inbox_setup(void);
+void display_mainmenu(void);
 void display_newmsg(void);
-void display_status(void);
+void display_next(void);
 void display_process(MENU_ENTRY entry, int choice);
+void display_setup(void);
+void display_setup_lcd(void);
+void display_status(void);
