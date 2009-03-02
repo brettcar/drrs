@@ -19,7 +19,7 @@ extern void setup_keypad(void);
 const char *messages[] = { "Hello", "Epic!", "Goal!", "Pasta", "DKCX." };
 const char ack[] = {'A', 'C', 'K', '.', ' '};
 
-boolean keypad_if;
+volatile boolean keypad_if;
 
 void setup (void)
 {
