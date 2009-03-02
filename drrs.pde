@@ -1,5 +1,6 @@
-#import "txvr.h"
 #import "display.h"
+#import "keypad.h"
+#import "txvr.h"
 
 const int keypad_irq_port = 3; // Keypad interrupt pin d3
 const int keypad_uart_port = 0;
@@ -12,9 +13,6 @@ const char TXVR_NOP_CMD = 0xFF;
 */
 
 #define KEYPAD_DEBUG // For keypad debugging
-
-extern void keypad_service(void);
-extern void setup_keypad(void);
 
 const char *messages[] = { "Hello", "Epic!", "Goal!", "Pasta", "DKCX." };
 const char ack[] = {'A', 'C', 'K', '.', ' '};
@@ -36,7 +34,7 @@ void setup (void)
   txvr_setup ();
   delay(100);
   display_setup_lcd ();
-  setup_keypad();
+  keypad_setup();
   display_setup();
   Serial.print ("Setup complete. ");
   delay(500);

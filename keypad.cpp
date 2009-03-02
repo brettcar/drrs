@@ -1,4 +1,5 @@
 #import "WProgram.h"       /* Needed for access to Serial library */
+#import "keypad.h"
 #import "display.h"
 
 // Yikes! We need a better way to avoid the use of globals!
@@ -20,10 +21,9 @@ const int keypad_D3 = 8;
 
 int prevKey = -1;
 int currKey = -1;
-// Set the Serial Baud Rate
 // Attach an interrupt handler for pin d3 
 // Call keypad_isr when the interreupt is triggered (LOW)
-void setup_keypad()
+void keypad_setup(void)
 {
   //d5 -> LSB ... d8 -> MSB
   Serial.print("Setup Keypad");
@@ -41,7 +41,7 @@ void keypad_isr()
   keypad_if = true;  
 }
 
-void keypad_service()
+void keypad_service(void)
 {
  if(keypad_if) 
  {
