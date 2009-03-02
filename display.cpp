@@ -2,9 +2,6 @@
 #import <assert.h>
 #import "display.h"
 
-
-extern boolean keypad_if;
-
 MENU_ENTRY entries[10];
 int currEntry;  // Used to index through MainMenu, Inbox, Config, etc.
 int currChoice; // Used to index through items in above menus (mgs, config options etc.)
@@ -137,7 +134,6 @@ void display_newmsg(void)
   // To do
   currEntry = 2;
   inNewMsg = true;
-  keypad_if = true;  
   display_clear();
 }
 
