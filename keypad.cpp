@@ -18,9 +18,18 @@ const int keypad_D1 = 6;
 const int keypad_D2 = 7;
 const int keypad_D3 = 8;
 
+const int keypad_irq_port = 3; // Keypad interrupt pin d3
+const int keypad_uart_port = 0;
 
 int prevKey = -1;
 int currKey = -1;
+
+void keypad_setup_ports(void)
+{
+  pinMode(keypad_uart_port, INPUT);
+  pinMode(keypad_irq_port, INPUT);
+}
+
 // Attach an interrupt handler for pin d3 
 // Call keypad_isr when the interreupt is triggered (LOW)
 void keypad_setup(void)

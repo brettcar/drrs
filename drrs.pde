@@ -2,9 +2,6 @@
 #import "keypad.h"
 #import "txvr.h"
 
-const int keypad_irq_port = 3; // Keypad interrupt pin d3
-const int keypad_uart_port = 0;
-
 /*
 #define BOARD_1   // BOARD_1 = Primary Transmitter
 #deinfe BOARD_2   // BOARD_2 = Primarty Receiver
@@ -20,9 +17,8 @@ volatile boolean keypad_if;
 void setup (void)
 {
   txvr_setup_ports();
+  keypad_setup_ports();
 
-  pinMode(keypad_uart_port, INPUT);
-  pinMode(keypad_irq_port, INPUT);
   SPCR = 0b01010010;
   int clr = SPSR;
   clr = SPDR;
