@@ -21,7 +21,6 @@ const char ack[] = {'A', 'C', 'K', '.', ' '};
 
 boolean keypad_if;
 boolean display_if;
-boolean trxvr_if;
 
 void setup (void)
 {
