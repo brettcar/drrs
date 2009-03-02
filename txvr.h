@@ -1,5 +1,12 @@
-extern volatile bool txvr_rx_irq;
-extern volatile bool txvr_tx_irq;
+extern volatile bool txvr_rx_if;
+extern volatile bool txvr_tx_if;
+
+const int txvr_irq_port = 2;
+const int txvr_ce_port = 9;
+const int txvr_csn_port = 10;
+const int txvr_mosi_port = 11;
+const int txvr_miso_port = 12;
+const int txvr_sck_port = 13;
 
 char read_txvr_reg(char reg);
 void txvr_receive_payload (void);

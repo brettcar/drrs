@@ -4,7 +4,7 @@
 
 /*
 #define BOARD_1   // BOARD_1 = Primary Transmitter
-#deinfe BOARD_2   // BOARD_2 = Primarty Receiver
+#define BOARD_2   // BOARD_2 = Primarty Receiver
 */
 
 #define KEYPAD_DEBUG // For keypad debugging
@@ -13,6 +13,8 @@ const char *messages[] = { "Hello", "Epic!", "Goal!", "Pasta", "DKCX." };
 const char ack[] = {'A', 'C', 'K', '.', ' '};
 
 volatile boolean keypad_if;
+
+extern const int txvr_ce_port;
 
 void setup (void)
 {
@@ -46,7 +48,7 @@ void loop(void)
   #ifdef BOARD_1
     static int i = 0;
     unsigned long start_time = millis();
-    transmit_payload(messages[i]);
+    txvr_transmit_payload(messages[i]);
    
     set_txvr_prim_rx(true);
     digitalWrite(txvr_ce_port, HIGH);
@@ -81,7 +83,7 @@ void loop(void)
 
     // Send Ack command!
     delay(1000);
-    transmit_payload(ack);
+    txvr_transmit_payload(ack);
   #endif
 }
 
