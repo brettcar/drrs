@@ -19,10 +19,12 @@ void setup (void)
   txvr_setup_ports();
   keypad_setup_ports();
 
+  /* Begin Configure SPI */
   SPCR = 0b01010010;
   int clr = SPSR;
   clr = SPDR;
   delay (10);
+  /* End Configure SPI */
 
   delay(5); 
   txvr_setup ();
