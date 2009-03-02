@@ -20,7 +20,6 @@ const char *messages[] = { "Hello", "Epic!", "Goal!", "Pasta", "DKCX." };
 const char ack[] = {'A', 'C', 'K', '.', ' '};
 
 boolean keypad_if;
-boolean display_if;
 
 void setup (void)
 {
