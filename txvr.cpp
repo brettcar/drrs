@@ -3,8 +3,8 @@
 
 extern char spi_transfer (volatile char data);
 
-volatile bool txvr_rx_irq = false;
-volatile bool txvr_tx_irq = false;
+volatile bool txvr_rx_if = false;
+volatile bool txvr_tx_if = false;
 
 const int txvr_irq_port = 2;
 const int txvr_ce_port = 9;
@@ -32,7 +32,7 @@ void txvr_isr()
   volatile char value = read_txvr_reg(7);
   // Check if RX_DR bit is set
   if (0b01000000 & value) {
-    txvr_rx_irq = true;    
+    txvr_rx_if = true;    
   }
   value |= 0b1110000;  
   write_txvr_reg(7, value);

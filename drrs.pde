@@ -59,16 +59,16 @@ void loop(void)
     
     Serial.print("TXed ");
     Serial.print(i, HEX);
-    while ((!txvr_rx_irq) && (millis() - start_time < 5000)) {
+    while ((!txvr_rx_if) && (millis() - start_time < 5000)) {
      ; // Do nothing while waiting for ACK
     }
     digitalWrite(txvr_ce_port, LOW);
-    if (txvr_rx_irq) {
+    if (txvr_rx_if) {
       Serial.print("RXed ");   
       txvr_receive_payload();
       i += 1;
       if (i == 5) i = 0;
-      txvr_rx_irq = false;
+      txvr_rx_if = false;
     } else {
       Serial.print("TIME OUT ");
     }
@@ -76,13 +76,13 @@ void loop(void)
   #ifdef BOARD_2
     txvr_set_prim_rx(true);
     digitalWrite(txvr_ce_port, HIGH);
-    while (!txvr_rx_irq) {
+    while (!txvr_rx_if) {
      ; // Do nothing while waiting for packet
     }
     digitalWrite(txvr_ce_port, LOW);    
-    if (txvr_rx_irq) {
+    if (txvr_rx_if) {
       txvr_receive_payload();
-      txvr_rx_irq = false;
+      txvr_rx_if = false;
     }
 
     // Send Ack command!
