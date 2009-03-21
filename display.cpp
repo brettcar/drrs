@@ -69,7 +69,27 @@ void display_setup(void)
 
 void display_next(void)
 {  
-  currChoice = (currChoice + 1) % 3; // <-- This mod value can't be hardcoded (varies depending on the current menu)
+  switch(currEntry)
+  {
+    // Main Menu
+    case 0:
+       currChoice = (currChoice + 1) % 4; 
+       break;       
+    // Inbox  
+    case 1:
+      currChoice = (currChoice + 1) % 3;
+      break;
+    // New Message
+    case 2:
+      // newMsg choices here
+      break;
+    // Config  
+    case 3:
+      currChoice = (currChoice + 1) % 3;
+      break;
+    default:
+      break;
+  }    
   display_draw_entry(entries[currEntry]);
 }
 
@@ -123,11 +143,11 @@ void display_inbox(void)
   // Start a for loop that's going to find all the msgs in the inbox 
   // And assign them the proper callback function
   int i;
-  for(i = 0; strlen(recMessages[i]) > 0; i++)
+  for(i = 0; i < 3 && strlen(recMessages[i]) > 0; i++)
   {
      entries[currEntry].choices[i].callback = &display_show_currMsg;
   }
-  display_addback(i - 1);
+  display_addback(i);
   
 }
 
