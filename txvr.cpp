@@ -222,3 +222,11 @@ char read_txvr_reg(char reg)
   return value;
 }
 
+// Circular Queue Implementation
+boolean isEmpty(C_QUEUE *queue)
+{
+  if(queue->head == queue->tail)
+    return true;
+  else
+    return false;  
+}
