@@ -230,3 +230,28 @@ boolean isEmpty(C_QUEUE *queue)
   else
     return false;  
 }
+
+void insert(C_QUEUE *queue, PACKET msg)
+{
+  int t;
+  t = (queue->tail + 1) % MAX;
+  if(t == queue->head)
+    // Overflow
+    Serial.print("Queue Overflow");
+  else
+  {
+    queue->tail = t;
+    queue->msgs[queue->tail] = msg;
+  }
+}
+
+void remove(C_QUEUE *queue)
+{
+  if(isEmpty(queue))
+    Serial.print("Queue underflow");
+  else
+  {
+    queue->head = (queue->head+1) % MAX; 
+  }  
+}
+
