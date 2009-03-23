@@ -117,7 +117,7 @@ char spi_transfer (volatile char data)
 #ifdef UNIT_TEST
 void test_ram_write()
 {  
-  for (int i = 0; i < PACKETS_RING_SIZE; i++) {
+  for (int i = 0; i < PACKET_RING_SIZE; i++) {
     packets[i].msgheader = 0xBC;
     packets[i].msglen = 0xAA;
     memset(packets[i].msgpayload, 0xCC, 32);
@@ -127,7 +127,7 @@ void test_ram_write()
 void test_ram_read()
 {
   bool failure = false;
-  for (int i = 0; i < PACKETS_RING_SIZE; i++) {
+  for (int i = 0; i < PACKET_RING_SIZE; i++) {
     if (packets[i].msgheader != 0xBC)
       failure = true;
     if (packets[i].msglen != 0xAA)
