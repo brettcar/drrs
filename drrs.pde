@@ -20,9 +20,8 @@ volatile uint8_t g_configid;
 extern const int txvr_ce_port;
 
 // Memory Test
-PACKET packet1;
-PACKET packet2;
-PACKET packet3;
+#define PACKET_RING_SIZE	3
+PACKET packets[PACKET_RING_SIZE];
 
 void setup (void)
 {
@@ -118,50 +117,29 @@ char spi_transfer (volatile char data)
 #ifdef UNIT_TEST
 void test_ram_write()
 {  
-  packet1.msgheader = 0b10101010;
-  packet1.msglen = 0b10101010;
-  memset(packet1.msgpayload, 1, 32);
-  
-  packet2.msgheader = 0b00001111;
-  packet2.msglen = 0b00001111;
-  memset(packet2.msgpayload, 0, 32);
-  
-  packet3.msgheader = 0b11110000;
-  packet3.msglen = 0b11110000;
-  memset(packet3.msgpayload, 0, 32);
+  for (int i = 0; i < PACKETS_RING_SIZE; i++) {
+    packets[i].msgheader = 0xBC;
+    packets[i].msglen = 0xAA;
+    memset(packets[i].msgpayload, 0xCC, 32);
+  }
 }
 
 void test_ram_read()
 {
-  Serial.print(packet1.msgheader, HEX);
-  Serial.print("_");
-  delay(10);
-  Serial.print(packet1.msglen, HEX);
-  Serial.print("_");
-  delay(10);
-  Serial.print(packet1.msgpayload[31], HEX);
-  Serial.print("_");
-  delay(10);
-  delay(3000);
-  Serial.print("----");
-  Serial.print(packet2.msgheader, HEX);
-  Serial.print("_");
-   delay(10);
-  Serial.print(packet2.msglen, HEX);
-  Serial.print("_");
-  delay(10);
-  Serial.print(packet2.msgpayload[31], HEX);  
-  Serial.print("_");
-  delay(3000);
-   Serial.print("----");
-  Serial.print(packet3.msgheader, HEX);
-  Serial.print("_");
-   delay(10);
-  Serial.print(packet3.msglen, HEX);
-  Serial.print("_");
-  delay(10);
-  Serial.print(packet3.msgpayload[31], HEX);  
-  Serial.print("_");
-  delay(3000);
+  bool failure = false;
+  for (int i = 0; i < PACKETS_RING_SIZE; i++) {
+    if (packets[i].msgheader != 0xBC)
+      failure = true;
+    if (packets[i].msglen != 0xAA)
+      failure = true;
+    for (int j = 0; j < 32; j++)
+      if (packets[i].msgpayload[j] != 0xCC)
+	failure = true;
+  }
+  Serial.print("TestRAM ");
+  if (failure == true)
+    Serial.print("FAILED");
+  else
+    Serial.print("PASSED");
 }
 #endif
