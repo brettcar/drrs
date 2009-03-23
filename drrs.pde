@@ -1,7 +1,9 @@
+#include <EEPROM.h>
 #import "display.h"
 #import "keypad.h"
 #import "txvr.h"
-
+#import "config.h"
+#import "WProgram.h"
 /*
 #define BOARD_1   // BOARD_1 = Primary Transmitter
 #define BOARD_2   // BOARD_2 = Primarty Receiver
@@ -9,11 +11,11 @@
 
 #define KEYPAD_DEBUG // For keypad debugging
 
-const char *messages[] = { "Hello", "Epic!", "Goal!", "Pasta", "DKCX." };
-const char ack[] = {'A', 'C', 'K', '.', ' '};
+//const char *messages[] = { "Hello", "Epic!", "Goal!", "Pasta", "DKCX." };
+//const char ack[] = {'A', 'C', 'K', '.', ' '};
 
 volatile boolean keypad_if;
-
+volatile uint8_t g_configid;
 extern const int txvr_ce_port;
 
 void setup (void)
@@ -34,9 +36,11 @@ void setup (void)
   display_setup_lcd ();
   keypad_setup();
   display_setup();
-  Serial.print ("Setup complete. ");
+  config_setup();
+  Serial.print ("Setup ack. ");
   delay(500);
   display_mainmenu();
+  keypad_if = false;
 }
 
 void loop(void)

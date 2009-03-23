@@ -1,6 +1,7 @@
-#import "WProgram.h"       /* Needed for access to Serial library */
+#import "WProgram.h"       /* Needed for access to Serial library & define boolean */
 #import "keypad.h"
 #import "display.h"
+#import "config.h"
 
 // Yikes! We need a better way to avoid the use of globals!
 extern int currChoice;
@@ -44,7 +45,7 @@ void keypad_setup(void)
   Serial.print("Setup Complete");
   display_clear();  
 }
-
+extern uint8_t g_configid;
 void keypad_isr()
 {
   keypad_if = true;  
@@ -52,10 +53,9 @@ void keypad_isr()
 
 void keypad_service(void)
 {
- if(keypad_if) 
+ if(keypad_if & 1) 
  {
    uint8_t val;
-
    keypad_if = false; // Immediately remove interrupt flag, so we
 		      // don't miss any keypresses while processing.
 
@@ -64,7 +64,7 @@ void keypad_service(void)
    // Assumption: data is ready on keypad
    // Read whatever is needed
    // Call display_process if it was a * or #  
-   if(inNewMsg)
+   if(inNewMsg & 1)
    {
      prevKey = currKey;
      currKey = val;
@@ -76,20 +76,23 @@ void keypad_service(void)
      else if(val != 0x04)
          currKey = val + 0x01;
          
-       Serial.print(keymap[prevKey][currKey]);
+    //   Serial.print(keymap[prevKey][currKey]);
        prevKey = -1;
        currKey = -1;  
      }
+   } 
+   else if ((inSetID & 1) && val == 0x0F) 
+   {
+     config_next_id();
    }
    else if (val == 0x0C)  // Choice 0 - *
    {
      display_process(entries[currEntry], currChoice);   // Yikes, entries is an external global!
-     currChoice = 0;                                    // Reset currChoice after an action item has been selected    
    }
    else if (val == 0x0F)  // Choice 1 - D
    { 
       display_next();
-   }  
+   }    
    else // Else, for now, just CLEAR and then print to LCD panel
    {   
      // TODO: Remove the behavior for production code.
