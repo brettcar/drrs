@@ -10,7 +10,7 @@
 */
 
 //#define KEYPAD_DEBUG // For keypad debugging
-//#define UNIT_TEST
+#define UNIT_TEST
 
 //const char *messages[] = { "Hello", "Epic!", "Goal!", "Pasta", "DKCX." };
 //const char ack[] = {'A', 'C', 'K', '.', ' '};
@@ -46,12 +46,15 @@ void setup (void)
   delay(500);
   display_mainmenu();
   keypad_if = false;
-  
+  #ifdef UNIT_TEST
+    test_ram_write();
+  #endif
 }
 
 void loop(void)
 {
   #ifdef UNIT_TEST
+    test_ram_read();
   #endif  
   
   #ifdef KEYPAD_DEBUG
@@ -140,6 +143,7 @@ void test_ram_read()
     Serial.print("FAILED");
   else
     Serial.print("PASSED");
+  delay(3000);
 }
 #endif
 
