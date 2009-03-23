@@ -19,7 +19,7 @@ void config_setup(void)
 }
 void config_set_id(void)
 {
-//  register int x = EEPROM.read(0);
+  register int x = EEPROM.read(0);
   inSetID = true;
   display_clear(); 
   delay(100);
@@ -30,7 +30,7 @@ void config_set_id(void)
   Serial.print("   ");
   delay(50);
   Serial.print("NEXT for new ID");
-  //EEPROM.write(0, x);
+  EEPROM.write(0, x);
 }
 
 void config_next_id(void)
