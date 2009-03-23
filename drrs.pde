@@ -20,7 +20,8 @@ volatile uint8_t g_configid;
 extern const int txvr_ce_port;
 
 // Memory Test
-PACKET packets[3];
+#define PACKET_RING_SIZE	3
+PACKET packets[PACKET_RING_SIZE];
 
 void setup (void)
 {
@@ -110,4 +111,35 @@ char spi_transfer (volatile char data)
   return SPDR;
   //return the received byte
 }
+
+
+#ifdef UNIT_TEST
+void test_ram_write()
+{  
+  for (int i = 0; i < PACKET_RING_SIZE; i++) {
+    packets[i].msgheader = 0xBC;
+    packets[i].msglen = 0xAA;
+    memset(packets[i].msgpayload, 0xCC, 32);
+  }
+}
+
+void test_ram_read()
+{
+  bool failure = false;
+  for (int i = 0; i < PACKET_RING_SIZE; i++) {
+    if (packets[i].msgheader != 0xBC)
+      failure = true;
+    if (packets[i].msglen != 0xAA)
+      failure = true;
+    for (int j = 0; j < 32; j++)
+      if (packets[i].msgpayload[j] != 0xCC)
+	failure = true;
+  }
+  Serial.print("TestRAM ");
+  if (failure == true)
+    Serial.print("FAILED");
+  else
+    Serial.print("PASSED");
+}
+#endif
 
