@@ -22,18 +22,7 @@ void config_setup(void)
 }
 void config_set_id(void)
 {
-  register int x = EEPROM.read(0);
-  inSetID = true;
-  display_clear(); 
-  delay(100);
-  Serial.print("CURRENT ID: ");
-  delay(50);
-  Serial.print(++x, HEX);
-  delay(50);
-  Serial.print("   ");
-  delay(50);
-  Serial.print("NEXT for new ID");
-  EEPROM.write(0, x);
+  
 }
 
 uint8_t config_get_id(void)

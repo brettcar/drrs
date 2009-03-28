@@ -307,8 +307,8 @@ void list_test_send(void)
   // Build a proper packet with some information and send it off
   void * data;
   PACKET * pkt = (PACKET*) malloc(sizeof(PACKET));
-  uint8_t sender = 0;
-  uint8_t receiver = 1;
+  uint8_t sender = 1;
+  uint8_t receiver = 0;
   uint8_t type = NORMAL;
   uint8_t id = 0;
   uint8_t msglen = 29;
@@ -366,11 +366,9 @@ void queue_transmit(void)
   // These messages will be txed
   if(dlist_size(&pktList) == 0)
     return;
-  
   DListElmt * thisElement;
-  for(thisElement = dlist_head(&pktList);
-      dlist_next(thisElement) != NULL;
-      thisElement = dlist_next(thisElement))
+  thisElement = dlist_head(&pktList);
+  do
   {
     PACKET * thisPacket = (PACKET*) dlist_data(thisElement);
     uint8_t dest = DESTINATION(thisPacket);
@@ -378,9 +376,9 @@ void queue_transmit(void)
     {
        // Transmit
       txvr_transmit_payload(thisPacket);
-      Serial.print("txed  ");
     }
-  }    
+    thisElement = dlist_next(thisElement);
+  }while(thisElement != NULL);      
 }
 
 void queue_receive(void) {
@@ -393,10 +391,9 @@ void queue_receive(void) {
     return;
   
   DListElmt * thisElement;
-  for (thisElement = dlist_head(&pktList); 
-       dlist_next(thisElement) != NULL; 
-       thisElement = dlist_next(thisElement)) {
-    
+  thisElement = dlist_head(&pktList);
+  
+   do{
     PACKET * thisPacket = (PACKET*)dlist_data(thisElement);
     uint8_t dest = DESTINATION(thisPacket);
     uint8_t src  = SENDER(thisPacket);
@@ -420,10 +417,10 @@ void queue_receive(void) {
       // Packet not for us, search for an ACK with the same DEST and
       // ID.
       bool foundAck = false;
-      for (DListElmt *subElmt  = dlist_head(&pktList); 
-       dlist_next(subElmt) != NULL; 
-       subElmt = dlist_next(subElmt)) {
-	PACKET * potentialACK = (PACKET*)dlist_data(subElmt);
+      
+      DListElmt *subElmt  = dlist_head(&pktList);
+      do {
+        PACKET * potentialACK = (PACKET*)dlist_data(subElmt);
 	if (DESTINATION(potentialACK) == dest
 	    && SENDER(potentialACK) == src
 	    && ID(potentialACK) == id
@@ -432,11 +429,15 @@ void queue_receive(void) {
 	      dlist_remove(&pktList, subElmt, NULL);
 	      foundAck = true;
 	    }
-      }
+       subElmt = dlist_next(subElmt);      
+      }while(subElmt != NULL);
+       
       if (foundAck == true)
 	dlist_remove(&pktList, thisElement, NULL);
-    }
-  }
+    } // End else if(TYPE...
+    
+    thisElement = dlist_next(thisElement);
+  }while(thisElement != NULL); // End while
 
   if (foundPacket == false)
     ; // Turn LED OFF.

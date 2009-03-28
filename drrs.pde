@@ -50,14 +50,18 @@ delay(5);
   //test_ram_write();
   #endif
   //list_test_insert();
+  list_test_send();
 }
 
 void loop(void)
 {
+  queue_receive();
+  delay(500);
+  queue_transmit();
+ 
   #ifdef UNIT_TEST
   //test_ram_read();
-  //queue_receive();
-  list_test_send();
+  //queue_receive();  
   delay(1000);
   #endif  
 
