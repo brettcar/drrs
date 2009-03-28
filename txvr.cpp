@@ -265,10 +265,9 @@ void queue_transmit(C_QUEUE *queue)
   
   for(int i = 0; i < (queue->tail); i++)
   {
-    // check if recipient id equals my id
-    //    if(EEPROM.read(0) == queue->msgs[i].id)
-      // Turn on LED -> we have a message
-    //else // Transmit this message 
+      
+
+        
       
   }  
 }
