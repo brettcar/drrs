@@ -301,15 +301,40 @@ void packet_print(PACKET * pkt) {
   Serial.print("]");
 }
 
+
+void list_test_send(void)
+{
+  // Build a proper packet with some information and send it off
+  void * data;
+  PACKET * pkt = (PACKET*) malloc(sizeof(PACKET));
+  uint8_t sender = 0;
+  uint8_t receiver = 1;
+  uint8_t type = NORMAL;
+  uint8_t id = 0;
+  uint8_t msglen = 29;
+  
+  packet_set_header(pkt, sender, receiver, type);
+  pkt->id = id;
+  pkt->msglen = msglen;
+  memset(pkt->msgpayload, 'A', 29);
+  
+  // Put the packet in the list
+  dlist_ins_next(&pktList, dlist_head(&pktList), pkt);
+  // Transmit the packet
+  queue_transmit();
+  Serial.print("success?");
+}
+
 #if 0
 void list_test_insert(void)
 {
   void * data; 
+  // Build backet, insert at head
   PACKET * pkt = (PACKET*) malloc(sizeof(PACKET));
   memset(pkt, 1, sizeof(PACKET));
   dlist_ins_next(&pktList, dlist_head(&pktList), pkt);
   
-  
+  // Build packet, insert at head
   pkt = (PACKET*) malloc(sizeof(PACKET));
   memset(pkt, 0, sizeof(PACKET));
   dlist_ins_next(&pktList, dlist_head(&pktList), pkt);
@@ -353,11 +378,9 @@ void queue_transmit(void)
     {
        // Transmit
       txvr_transmit_payload(thisPacket);
+      Serial.print("txed  ");
     }
-   
-  }
-   
-    
+  }    
 }
 
 void queue_receive(void) {

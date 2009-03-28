@@ -57,6 +57,7 @@ void loop(void)
   #ifdef UNIT_TEST
   //test_ram_read();
   //queue_receive();
+  list_test_send();
   delay(1000);
   #endif  
 

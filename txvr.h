@@ -32,4 +32,6 @@ void txvr_setup_ports (void);
 char txvr_transmit_payload (const char *data);
 void write_txvr_reg(char reg, char val);
 void queue_receive(void);
+void queue_transmit(void);
 void list_test_insert(void);
+void list_test_send(void);
