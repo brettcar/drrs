@@ -193,12 +193,28 @@ void txvr_receive_payload (void)
   Serial.print (payload);
 }
 
-char txvr_transmit_payload (const char *data)
+char txvr_transmit_payload (PACKET * packet)
 {
   // Assumption: txvr is in RX mode
   
-  // TODO:
-  // digitalWrite(txvr_ce_port, LOW);
+
+  digitalWrite(txvr_ce_port, LOW);
+  digitalWrite(txvr_csn_port, LOW);
+  
+  spi_transfer(0xA0);
+  spi_transfer(packet->msgheader);
+  spi_transfer(packet->id);
+  spi_transfer(packet->msglen);
+  for(int i = 0; i < 29; i++)
+    spi_transfer(packet->msgpayload[i]);
+  
+  digitalWrite(txvr_csn_port, HIGH);
+  txvr_set_prim_rx(false);
+  digitalWrite(txvr_ce_port, HIGH);
+  delayMicroseconds(200);
+  digitalWrite(txvr_ce_port, HIGH);
+
+  // txr instructions    
   // Write FIFO payload (include csn_port toggle)
   // txvr_set_prim_rx (false);
   // digitalWrite (txvr_ce_port, HIGH);
@@ -207,19 +223,6 @@ char txvr_transmit_payload (const char *data)
   // txvr_set_prim_rx (true); 
   // Delay
   // digitalWrite (txvr_ce_port, HIGH);
-  
-  digitalWrite (txvr_csn_port, LOW);
-  spi_transfer (0xA0);
-  spi_transfer (data[0]);
-  spi_transfer (data[1]);
-  spi_transfer (data[2]);
-  spi_transfer (data[3]);
-  spi_transfer (data[4]);
-  digitalWrite (txvr_csn_port, HIGH);
-  
-  digitalWrite (txvr_ce_port, HIGH);
-  delayMicroseconds(200);
-  digitalWrite (txvr_ce_port, LOW);
 }
 
 // write an 8-bit reg
