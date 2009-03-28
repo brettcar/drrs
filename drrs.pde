@@ -10,7 +10,7 @@
 */
 
 //#define KEYPAD_DEBUG // For keypad debugging
-#define UNIT_TEST
+//#define UNIT_TEST
 
 //const char *messages[] = { "Hello", "Epic!", "Goal!", "Pasta", "DKCX." };
 //const char ack[] = {'A', 'C', 'K', '.', ' '};
@@ -65,52 +65,20 @@ void loop(void)
   delay(1000);
   #endif  
 
-    
-  
   #ifdef KEYPAD_DEBUG
   //Do nothing, wait for keypad interrupt    
     keypad_service();
   #endif
-  #ifdef BOARD_1
-    static int i = 0;
-    unsigned long start_time = millis();
-    txvr_transmit_payload(messages[i]);
-   
-    set_txvr_prim_rx(true);
-    digitalWrite(txvr_ce_port, HIGH);
-    
-    Serial.print("TXed ");
-    Serial.print(i, HEX);
-    while ((!txvr_rx_if) && (millis() - start_time < 5000)) {
-     ; // Do nothing while waiting for ACK
-    }
-    digitalWrite(txvr_ce_port, LOW);
-    if (txvr_rx_if) {
-      Serial.print("RXed ");   
-      txvr_receive_payload();
-      i += 1;
-      if (i == 5) i = 0;
-      txvr_rx_if = false;
-    } else {
-      Serial.print("TIME OUT ");
-    }
-  #endif
-  #ifdef BOARD_2
-    txvr_set_prim_rx(true);
-    digitalWrite(txvr_ce_port, HIGH);
-    while (!txvr_rx_if) {
-     ; // Do nothing while waiting for packet
-    }
-    digitalWrite(txvr_ce_port, LOW);    
-    if (txvr_rx_if) {
+  
+  // TODO: Key assumption is that loop() is always
+  // operating when the transceiver is in RX mode.
+  // This implies that CE is high and PRIM_RX is set. 
+  // Only the final transmit payload function should fuss with CE/PRIM_RX.
+  if (txvr_rx_if) { 
+    // Packet is waiting for us... there could be more than 1 waiting.
       txvr_receive_payload();
       txvr_rx_if = false;
-    }
-
-    // Send Ack command!
-    delay(1000);
-    txvr_transmit_payload(ack);
-  #endif
+  }
 }
 
 char spi_transfer (volatile char data)
