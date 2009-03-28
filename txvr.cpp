@@ -352,7 +352,7 @@ void queue_transmit(void)
     if(dest != config_get_id())
     {
        // Transmit
-      //txvr_transmit_payload(
+      txvr_transmit_payload(thisPacket);
     }
    
   }
