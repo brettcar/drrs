@@ -79,7 +79,7 @@ void txvr_setup (void)
   digitalWrite (txvr_csn_port, HIGH);
 
   //Attach interrupt to dataRecIF
-//  attachInterrupt(0, txvr_isr, LOW);
+  attachInterrupt(0, txvr_isr, LOW);
 
 }
 
@@ -265,6 +265,98 @@ static inline void packet_set_header(PACKET * pkt, uint8_t sender, uint8_t recei
   pkt->msgheader |= (receiver & 0x7) << 5;        
 }
 
+void packet_print(PACKET * pkt) {
+  Serial.print("[PKT: Dst(");
+  Serial.print(DESTINATION(pkt), HEX);
+  Serial.print(") Src(");
+  delay(100);
+  Serial.print(SENDER(pkt), HEX);
+  Serial.print(") Type(");
+  switch(TYPE(pkt), HEX) {
+    case NORMAL:
+      Serial.print("NORMAL");
+      break;
+    case ACK:
+      Serial.print("ACK");
+      break;
+    default:
+      Serial.print("UNK");
+      break;
+  }
+  Serial.print(") Id(");
+  delay(1000);
+  Serial.print(ID(pkt), HEX);
+  Serial.print("Msglen(");
+  Serial.print(pkt->msglen, HEX);
+  Serial.print(") Data: ");
+  delay(250);
+  /*for (int i = 0; i < 20; i++) {
+    Serial.print(pkt->msgpayload[i], HEX);
+    delay(50);
+   
+  }*/
+  Serial.print("]");
+}
+
+#if 0
+void list_test_insert(void)
+{
+  void * data; 
+  PACKET * pkt = (PACKET*) malloc(sizeof(PACKET));
+  memset(pkt, 1, sizeof(PACKET));
+  dlist_ins_next(&pktList, dlist_head(&pktList), pkt);
+  
+  
+  pkt = (PACKET*) malloc(sizeof(PACKET));
+  memset(pkt, 0, sizeof(PACKET));
+  dlist_ins_next(&pktList, dlist_head(&pktList), pkt);
+  
+  // Now get a packet.
+  DListElmt * elmt = NULL;
+  elmt = dlist_head(&pktList);
+
+  if (elmt == NULL)
+   Serial.print("SHIT BROKE");
+  else if (dlist_size(&pktList) != 2)
+    Serial.print("FUBAR");
+  
+  dlist_remove(&pktList, elmt, &data);
+  free(data);
+  if(dlist_size(&pktList) != 1)
+    Serial.print("error");
+  if (dlist_data(dlist_head(&pktList)) != pkt)
+    Serial.print("wtf");
+    
+  Serial.print("itsallgood");
+}
+#endif
+
+
+void queue_transmit(void) 
+{
+  // Iterate through our list and find every message that is not intended for us
+  // These messages will be txed
+  if(dlist_size(&pktList) == 0)
+    return;
+  
+  DListElmt * thisElement;
+  for(thisElement = dlist_head(&pktList);
+      dlist_next(thisElement) != NULL;
+      thisElement = dlist_next(thisElement))
+  {
+    PACKET * thisPacket = (PACKET*) dlist_data(thisElement);
+    uint8_t dest = DESTINATION(thisPacket);
+    if(dest != config_get_id())
+    {
+       // Transmit
+      //txvr_transmit_payload(
+    }
+   
+  }
+   
+    
+}
+
 void queue_receive(void) {
   // Loop through queue checking for messages destined for us. If they
   // are for us, turn the LED on. If they are not destined for us,
@@ -284,7 +376,7 @@ void queue_receive(void) {
     uint8_t src  = SENDER(thisPacket);
     uint8_t id   = ID(thisPacket);
 
-    if (DESTINATION(thisPacket) == config_get_id() 
+    if (dest == config_get_id() 
 	&& TYPE(thisPacket) == NORMAL)
       {
 	foundPacket = true;

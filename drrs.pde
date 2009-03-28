@@ -49,15 +49,15 @@ delay(5);
   #ifdef UNIT_TEST
   //test_ram_write();
   #endif
+  //list_test_insert();
 }
 
 void loop(void)
 {
   #ifdef UNIT_TEST
   //test_ram_read();
-  queue_receive();
-  Serial.print("OK ");
-  delay(500);
+  //queue_receive();
+  delay(1000);
   #endif  
 
     
