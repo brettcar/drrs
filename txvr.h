@@ -1,7 +1,8 @@
 typedef struct {
-  uint8_t msgheader;  
+  uint8_t msgheader;
+  uint8_t id;
   uint8_t msglen; 
-  uint8_t msgpayload[32];
+  uint8_t msgpayload[31];
 } PACKET;
 
 #define MAX 3
@@ -12,12 +13,16 @@ typedef struct {
   PACKET msgs[MAX];  
 }C_QUEUE;
 
+
+
 /* 
   header |= (destination & 0x7) << 5;        
   header |= (sender & 0x7) << 2;        
   and for the message type:
   header |= 0, 1, 2, or 3;
 */
+
+enum { NORMAL = 0, ACK, RESERVED_0, RESERVED_1 } packet_types;
 
 extern volatile bool txvr_rx_if;
 extern volatile bool txvr_tx_if;
