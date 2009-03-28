@@ -2,6 +2,9 @@
 #import "WProgram.h"
 #import "txvr.h"
 #import "config.h"
+#import "list.h"
+
+static List pktList;
 
 extern char spi_transfer (volatile char data);
 
@@ -36,6 +39,8 @@ void txvr_isr()
 
 void txvr_setup (void)
 {
+  list_init(&pktList, free);
+  
   txvr_set_pwr_up ();
   delay (100);
   txvr_set_rf_setup_reg ();
@@ -224,66 +229,37 @@ char read_txvr_reg(char reg)
   return value;
 }
 
-// Circular Queue Implementation
-boolean queue_isEmpty(C_QUEUE *queue)
-{
-  if(queue->head == queue->tail)
-    return true;
-  else
-    return false;  
+static inline uint8_t DESTINATION(PACKET * bpkt) {
+  return bpkt->msgheader & 0xE0 >> 5;
 }
 
-void queue_insert(C_QUEUE *queue, PACKET msg)
-{
-  int t;
-  t = (queue->tail + 1) % MAX;
-  if(t == queue->head) 
-    // Overflow
-    Serial.print("Queue Overflow");
-  else
-  {
-    queue->msgs[queue->tail] = msg;
-    queue->tail = t;
-  }
+static inline uint8_t SENDER(PACKET * apkt) {
+  return apkt->msgheader & 0x1C >> 2;
 }
 
-void queue_remove(C_QUEUE *queue)
-{
-  if(queue_isEmpty(queue))
-    Serial.print("Queue underflow");
-  else
-  {
-    queue->head = (queue->head+1) % MAX; 
-  }  
+static inline uint8_t TYPE(PACKET * apkt) {
+  return apkt->msgheader & 0x02;
 }
 
-static inline uint8_t DESTINATION(PACKET bpkt) {
-  return bpkt.msgheader & 0xE0 >> 5;
+static inline uint8_t ID(PACKET * apkt) {
+  return apkt->id;
 }
 
-static inline uint8_t SENDER(PACKET apkt) {
-  return apkt.msgheader & 0x1C >> 2;
-}
-
-static inline uint8_t TYPE(PACKET apkt) {
-  return apkt.msgheader & 0x02;
-}
-
-static inline uint8_t ID(PACKET apkt) {
-  return apkt.id;
-}
-
-void queue_receive(C_QUEUE *queue) {
+void queue_receive(List *pkts) {
   // Loop through queue checking for messages destined for us. If they
   // are for us, turn the LED on. If they are not destined for us,
   // check the entire loop for ACKs for that message. If an ACK is
   // found, then remove the ACK and the message from the queue.
-  register int i, j;
   register bool foundPacket = false;
-  if (queue_isEmpty(queue))
+  if (list_size(pkts) == 0)
     return;
-  for (i = queue->head; i < queue->tail; i++) {
-    PACKET thisPacket = queue->msgs[i];
+  
+  ListElmt * thisElement;
+  for (thisElement = list_head(pkts); 
+       list_next(thisElement) != NULL; 
+       thisElement = list_next(thisElement)) {
+    
+    PACKET * thisPacket = (PACKET*)list_data(thisElement);
     if (DESTINATION(thisPacket) == 0//config_get_id() 
 	&& TYPE(thisPacket) == NORMAL)
       {
@@ -297,35 +273,21 @@ void queue_receive(C_QUEUE *queue) {
       uint8_t dest = DESTINATION(thisPacket);
       uint8_t src  = SENDER(thisPacket);
       uint8_t id   = ID(thisPacket);
-      for (j = queue->head; j < queue->tail; j++)
-	{
-	  PACKET potentialACK = queue->msgs[j];
-	  if (DESTINATION(potentialACK) == dest
-	      && SENDER(potentialACK) == src
-	      && ID(potentialACK) == id
-	      && TYPE(potentialACK) == ACK)
+      for (ListElmt *subElmt  = list_head(pkts); 
+       list_next(subElmt) != NULL; 
+       subElmt = list_next(subElmt)) {
+	PACKET * potentialACK = list_data(subElmt);
+	if (DESTINATION(potentialACK) == dest
+	    && SENDER(potentialACK) == src
+	    && ID(potentialACK) == id
+	    && TYPE(potentialACK) == ACK)
 	    {
 	      // We have a match. Remove both packets from the queue.
 	    }
 	}
+      */
     }
   }
   if (foundPacket == false)
     ; // Turn LED OFF.
-}
-
-void queue_transmit(C_QUEUE *queue)
-{
-  // Iterate through the message queue and transmit any received messages that are not for this receiver.
-  // If a message is destined for this receiver, leave it alone.
-  if(queue_isEmpty(queue))
-    return;
-  
-  for(int i = 0; i < (queue->tail); i++)
-  {
-      
-
-        
-      
-  }  
 }
