@@ -34,8 +34,8 @@ void setup (void)
   clr = SPDR;
   delay (10);
   /* End Configure SPI */
-
-  delay(5); 
+Serial.print("HALP");
+delay(5); 
   txvr_setup ();
   delay(100);
   display_setup_lcd ();
@@ -47,15 +47,20 @@ void setup (void)
   display_mainmenu();
   keypad_if = false;
   #ifdef UNIT_TEST
-    test_ram_write();
+  //test_ram_write();
   #endif
 }
 
 void loop(void)
 {
   #ifdef UNIT_TEST
-    test_ram_read();
+  //test_ram_read();
+  queue_receive();
+  Serial.print("OK ");
+  delay(500);
   #endif  
+
+    
   
   #ifdef KEYPAD_DEBUG
   //Do nothing, wait for keypad interrupt    

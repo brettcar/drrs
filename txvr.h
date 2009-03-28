@@ -5,23 +5,7 @@ typedef struct {
   uint8_t msgpayload[29];
 } PACKET;
 
-#define MAX 3
-
-typedef struct {
-  uint8_t head;
-  uint8_t tail;
-  PACKET msgs[MAX];  
-}C_QUEUE;
-
-
-
-/* 
-  header |= (destination & 0x7) << 5;        
-  header |= (sender & 0x7) << 2;        
-  and for the message type:
-  header |= 0, 1, 2, or 3;
-*/
-
+// Packet Type Codes
 enum { NORMAL = 0, ACK, RESERVED_0, RESERVED_1 };
 
 extern volatile bool txvr_rx_if;
@@ -47,4 +31,4 @@ void txvr_setup (void);
 void txvr_setup_ports (void);
 char txvr_transmit_payload (const char *data);
 void write_txvr_reg(char reg, char val);
-void queue_transmit(C_QUEUE *queue);
+void queue_receive(void);

@@ -36,7 +36,7 @@ void config_set_id(void)
   EEPROM.write(0, x);
 }
 
-inline uint8_t config_get_id(void)
+uint8_t config_get_id(void)
 {
   return EEPROM.read(0);
 }
