@@ -252,17 +252,17 @@ static inline void packet_set_header(PACKET * pkt, uint8_t sender, uint8_t recei
   pkt->msgheader |= (receiver & 0x7) << 5;        
 }
 
-void queue_receive(DList *pkts) {
+void queue_receive(void) {
   // Loop through queue checking for messages destined for us. If they
   // are for us, turn the LED on. If they are not destined for us,
   // check the entire loop for ACKs for that message. If an ACK is
   // found, then remove the ACK and the message from the queue.
   register bool foundPacket = false;
-  if (dlist_size(pkts) == 0)
+  if (dlist_size(&pktList) == 0)
     return;
   
   DListElmt * thisElement;
-  for (thisElement = dlist_head(pkts); 
+  for (thisElement = dlist_head(&pktList); 
        dlist_next(thisElement) != NULL; 
        thisElement = dlist_next(thisElement)) {
     
@@ -289,7 +289,7 @@ void queue_receive(DList *pkts) {
       // Packet not for us, search for an ACK with the same DEST and
       // ID.
       bool foundAck = false;
-      for (DListElmt *subElmt  = dlist_head(pkts); 
+      for (DListElmt *subElmt  = dlist_head(&pktList); 
        dlist_next(subElmt) != NULL; 
        subElmt = dlist_next(subElmt)) {
 	PACKET * potentialACK = (PACKET*)dlist_data(subElmt);
@@ -298,12 +298,12 @@ void queue_receive(DList *pkts) {
 	    && ID(potentialACK) == id
 	    && TYPE(potentialACK) == ACK)
 	    {
-	      dlist_remove(pkts, subElmt, NULL);
+	      dlist_remove(&pktList, subElmt, NULL);
 	      foundAck = true;
 	    }
       }
       if (foundAck == true)
-	dlist_remove(pkts, thisElement, NULL);
+	dlist_remove(&pktList, thisElement, NULL);
     }
   }
 
