@@ -1,3 +1,4 @@
+#include <EEPROM.h>
 #import "WProgram.h"
 #import "txvr.h"
 
@@ -223,7 +224,7 @@ char read_txvr_reg(char reg)
 }
 
 // Circular Queue Implementation
-boolean isEmpty(C_QUEUE *queue)
+boolean queue_isEmpty(C_QUEUE *queue)
 {
   if(queue->head == queue->tail)
     return true;
@@ -231,7 +232,7 @@ boolean isEmpty(C_QUEUE *queue)
     return false;  
 }
 
-void insert(C_QUEUE *queue, PACKET msg)
+void queue_insert(C_QUEUE *queue, PACKET msg)
 {
   int t;
   t = (queue->tail + 1) % MAX;
@@ -240,18 +241,35 @@ void insert(C_QUEUE *queue, PACKET msg)
     Serial.print("Queue Overflow");
   else
   {
-    queue->tail = t;
     queue->msgs[queue->tail] = msg;
+    queue->tail = t;
   }
 }
 
-void remove(C_QUEUE *queue)
+void queue_remove(C_QUEUE *queue)
 {
-  if(isEmpty(queue))
+  if(queue_isEmpty(queue))
     Serial.print("Queue underflow");
   else
   {
     queue->head = (queue->head+1) % MAX; 
+  }  
+}
+
+void queue_transmit(C_QUEUE *queue)
+{
+  // Iterate through the message queue and transmit any received messages that are not for this receiver.
+  // If a message is destined for this receiver, leave it alone.
+  if(queue_isEmpty(queue))
+    return;
+  
+  for(int i = 0; i < (queue->tail); i++)
+  {
+    // check if recipient id equals my id
+    //    if(EEPROM.read(0) == queue->msgs[i].id)
+      // Turn on LED -> we have a message
+    //else // Transmit this message 
+      
   }  
 }
 

@@ -1,10 +1,10 @@
 typedef struct {
-  uint8_t msgheader;
+  uint8_t msgheader;  
   uint8_t msglen; 
   uint8_t msgpayload[32];
 } PACKET;
 
-#define MAX 2
+#define MAX 3
 
 typedef struct {
   uint8_t head;
