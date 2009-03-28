@@ -4,10 +4,12 @@ typedef struct {
   uint8_t msgpayload[32];
 } PACKET;
 
+#define MAX 2
+
 typedef struct {
   uint8_t head;
   uint8_t tail;
-  PACKET msgs[2];  
+  PACKET msgs[MAX];  
 }C_QUEUE;
 
 /* 
@@ -40,3 +42,4 @@ void txvr_setup (void);
 void txvr_setup_ports (void);
 char txvr_transmit_payload (const char *data);
 void write_txvr_reg(char reg, char val);
+void queue_transmit(C_QUEUE *queue);
