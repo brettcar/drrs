@@ -235,7 +235,7 @@ void insert(C_QUEUE *queue, PACKET msg)
 {
   int t;
   t = (queue->tail + 1) % MAX;
-  if(t == queue->head)
+  if(t == queue->head) 
     // Overflow
     Serial.print("Queue Overflow");
   else
@@ -255,3 +255,46 @@ void remove(C_QUEUE *queue)
   }  
 }
 
+static inline uint8_t DESTINATION(PACKET bpkt) {
+  return bpkt.msgheader & 0xE0 >> 5;
+}
+
+static inline uint8_t SENDER(PACKET apkt) {
+  return apkt.msgheader & 0x1C >> 2;
+}
+
+static inline uint8_t TYPE(PACKET apkt) {
+  return apkt.msgheader & 0x02;
+}
+
+static inline uint8_t ID(PACKET apkt) {
+  return apkt.id;
+}
+
+void queue_receive(C_QUEUE *queue) {
+  // Loop through queue checking for messages destined for us. If they
+  // are for us, turn the LED on. If they are not destined for us,
+  // check the entire loop for ACKs for that message. If an ACK is
+  // found, then remove the ACK and the message from the queue.
+  int i, j;
+
+  if (isEmpty(queue))
+    return;
+  for (i = queue->head; i < queue->tail; i++) {
+    PACKET thisPacket = queue->msgs[i];
+    if (DESTINATION(thisPacket) == config_get_id() 
+	&& TYPE(thisPacket) == NORMAL)
+      {
+	;
+	// LED TURN ON
+      }
+    else if (TYPE(thisPacket) == NORMAL) {
+      // Packet not for us, search for an ACK with the same DEST and
+      // ID.
+      uint8_t dest = DESTINATION(thisPacket);
+      uint8_t src  = SOURCE(thisPacket);
+      uint8_t id   = ID(thisPacket);
+    }
+    
+
+}

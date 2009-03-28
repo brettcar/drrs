@@ -5,7 +5,7 @@ typedef struct
   int id;
   double freq;
   int brightness;
-}CONFIG;
+} CONFIG;
 
 //extern CONFIG g_config;
 extern int currChoice;
