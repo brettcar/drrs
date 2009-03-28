@@ -1,10 +1,3 @@
-
-/*****************************************************************************
-*                                                                            *
-*  -------------------------------- list.c --------------------------------  *
-*                                                                            *
-*****************************************************************************/
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -12,11 +5,11 @@
 
 /*****************************************************************************
 *                                                                            *
-*  ------------------------------- list_init ------------------------------  *
+*  ------------------------------ dlist_init ------------------------------  *
 *                                                                            *
 *****************************************************************************/
 
-void list_init(List *list, void (*destroy)(void *data)) {
+void dlist_init(DList *list, void (*destroy)(void *data)) {
 
 /*****************************************************************************
 *                                                                            *
@@ -35,11 +28,11 @@ return;
 
 /*****************************************************************************
 *                                                                            *
-*  ----------------------------- list_destroy -----------------------------  *
+*  ---------------------------- dlist_destroy -----------------------------  *
 *                                                                            *
 *****************************************************************************/
 
-void list_destroy(List *list) {
+void dlist_destroy(DList *list) {
 
 void               *data;
 
@@ -49,10 +42,10 @@ void               *data;
 *                                                                            *
 *****************************************************************************/
 
-while (list_size(list) > 0) {
+while (dlist_size(list) > 0) {
 
-   if (list_rem_next(list, NULL, (void **)&data) == 0 && list->destroy !=
-      NULL) {
+   if (dlist_remove(list, dlist_tail(list), (void **)&data) == 0 && list->
+      destroy != NULL) {
 
       /***********************************************************************
       *                                                                      *
@@ -72,7 +65,7 @@ while (list_size(list) > 0) {
 *                                                                            *
 *****************************************************************************/
 
-memset(list, 0, sizeof(List));
+memset(list, 0, sizeof(DList));
 
 return;
 
@@ -80,13 +73,22 @@ return;
 
 /*****************************************************************************
 *                                                                            *
-*  ----------------------------- list_ins_next ----------------------------  *
+*  ---------------------------- dlist_ins_next ----------------------------  *
 *                                                                            *
 *****************************************************************************/
 
-int list_ins_next(List *list, ListElmt *element, const void *data) {
+int dlist_ins_next(DList *list, DListElmt *element, const void *data) {
 
-ListElmt           *new_element;
+DListElmt          *new_element;
+
+/*****************************************************************************
+*                                                                            *
+*  Do not allow a NULL element unless the list is empty.                     *
+*                                                                            *
+*****************************************************************************/
+
+if (element == NULL && dlist_size(list) != 0)
+   return -1;
 
 /*****************************************************************************
 *                                                                            *
@@ -94,30 +96,29 @@ ListElmt           *new_element;
 *                                                                            *
 *****************************************************************************/
 
-if ((new_element = (ListElmt *)malloc(sizeof(ListElmt))) == NULL)
+if ((new_element = (DListElmt *)malloc(sizeof(DListElmt))) == NULL)
    return -1;
 
 /*****************************************************************************
 *                                                                            *
-*  Insert the element into the list.                                         *
+*  Insert the new element into the list.                                     *
 *                                                                            *
 *****************************************************************************/
 
 new_element->data = (void *)data;
 
-if (element == NULL) {
+if (dlist_size(list) == 0) {
 
    /**************************************************************************
    *                                                                         *
-   *  Handle insertion at the head of the list.                              *
+   *  Handle insertion when the list is empty.                               *
    *                                                                         *
    **************************************************************************/
 
-   if (list_size(list) == 0)
-      list->tail = new_element;
-
-   new_element->next = list->head;
    list->head = new_element;
+   list->head->prev = NULL;
+   list->head->next = NULL;
+   list->tail = new_element;
 
    }
 
@@ -125,14 +126,18 @@ else {
 
    /**************************************************************************
    *                                                                         *
-   *  Handle insertion somewhere other than at the head.                     *
+   *  Handle insertion when the list is not empty.                           *
    *                                                                         *
    **************************************************************************/
 
+   new_element->next = element->next;
+   new_element->prev = element;
+
    if (element->next == NULL)
       list->tail = new_element;
+   else
+      element->next->prev = new_element;
 
-   new_element->next = element->next;
    element->next = new_element;
 
 }
@@ -151,21 +156,105 @@ return 0;
 
 /*****************************************************************************
 *                                                                            *
-*  ----------------------------- list_rem_next ----------------------------  *
+*  ---------------------------- dlist_ins_prev ----------------------------  *
 *                                                                            *
 *****************************************************************************/
 
-int list_rem_next(List *list, ListElmt *element, void **data) {
 
-ListElmt           *old_element;
+int dlist_ins_prev(DList *list, DListElmt *element, const void *data) {
+
+DListElmt          *new_element;
 
 /*****************************************************************************
 *                                                                            *
-*  Do not allow removal from an empty list.                                  *
+*  Do not allow a NULL element unless the list is empty.                     *
 *                                                                            *
 *****************************************************************************/
 
-if (list_size(list) == 0)
+if (element == NULL && dlist_size(list) != 0)
+   return -1;
+
+/*****************************************************************************
+*                                                                            *
+*  Allocate storage to be managed by the abstract data type.                 *
+*                                                                            *
+*****************************************************************************/
+
+if ((new_element = (DListElmt *)malloc(sizeof(DListElmt))) == NULL)
+   return -1;
+
+/*****************************************************************************
+*                                                                            *
+*  Insert the new element into the list.                                     *
+*                                                                            *
+*****************************************************************************/
+
+new_element->data = (void *)data;
+
+if (dlist_size(list) == 0) {
+
+   /**************************************************************************
+   *                                                                         *
+   *  Handle insertion when the list is empty.                               *
+   *                                                                         *
+   **************************************************************************/
+
+   list->head = new_element;
+   list->head->prev = NULL;
+   list->head->next = NULL;
+   list->tail = new_element;
+
+   }
+
+
+else {
+
+   /**************************************************************************
+   *                                                                         *
+   *  Handle insertion when the list is not empty.                           *
+   *                                                                         *
+   **************************************************************************/
+
+   new_element->next = element; 
+   new_element->prev = element->prev;
+
+   if (element->prev == NULL)
+      list->head = new_element;
+   else
+      element->prev->next = new_element;
+
+   element->prev = new_element;
+
+}
+
+
+/*****************************************************************************
+*                                                                            *
+*  Adjust the size of the list to account for the new element.               *
+*                                                                            *
+*****************************************************************************/
+
+list->size++;
+
+return 0;
+
+}
+
+/*****************************************************************************
+*                                                                            *
+*  ----------------------------- dlist_remove -----------------------------  *
+*                                                                            *
+*****************************************************************************/
+
+int dlist_remove(DList *list, DListElmt *element, void **data) {
+
+/*****************************************************************************
+*                                                                            *
+*  Do not allow a NULL element or removal from an empty list.                *
+*                                                                            *
+*****************************************************************************/
+
+if (element == NULL || dlist_size(list) == 0)
    return -1;
 
 /*****************************************************************************
@@ -174,7 +263,9 @@ if (list_size(list) == 0)
 *                                                                            *
 *****************************************************************************/
 
-if (element == NULL) {
+*data = element->data;
+
+if (element == list->head) {
 
    /**************************************************************************
    *                                                                         *
@@ -182,12 +273,12 @@ if (element == NULL) {
    *                                                                         *
    **************************************************************************/
 
-   *data = list->head->data;
-   old_element = list->head;
-   list->head = list->head->next;
+   list->head = element->next;
 
-   if (list_size(list) == 1)
+   if (list->head == NULL)
       list->tail = NULL;
+   else
+      element->next->prev = NULL;
 
    }
 
@@ -195,19 +286,16 @@ else {
 
    /**************************************************************************
    *                                                                         *
-   *  Handle removal from somewhere other than the head.                     *
+   *  Handle removal from other than the head of the list.                   *
    *                                                                         *
    **************************************************************************/
 
-   if (element->next == NULL)
-      return -1;
-
-   *data = element->next->data;
-   old_element = element->next;
-   element->next = element->next->next;
+   element->prev->next = element->next;
 
    if (element->next == NULL)
-      list->tail = element;
+      list->tail = element->prev;
+   else
+      element->next->prev = element->prev;
 
 }
 
@@ -217,7 +305,7 @@ else {
 *                                                                            *
 *****************************************************************************/
 
-free(old_element);
+free(element);
 
 /*****************************************************************************
 *                                                                            *
