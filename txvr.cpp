@@ -279,11 +279,11 @@ void queue_receive(C_QUEUE *queue) {
   // found, then remove the ACK and the message from the queue.
   int i, j;
 
-  if (isEmpty(queue))
+  if (queue_isEmpty(queue))
     return;
   for (i = queue->head; i < queue->tail; i++) {
     PACKET thisPacket = queue->msgs[i];
-    if (DESTINATION(thisPacket) == config_get_id() 
+    if (DESTINATION(thisPacket) == 0//config_get_id() 
 	&& TYPE(thisPacket) == NORMAL)
       {
 	;
