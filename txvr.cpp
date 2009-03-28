@@ -190,7 +190,19 @@ void txvr_receive_payload (void)
 
 char txvr_transmit_payload (const char *data)
 {
-  txvr_set_prim_rx (false);
+  // Assumption: txvr is in RX mode
+  
+  // TODO:
+  // digitalWrite(txvr_ce_port, LOW);
+  // Write FIFO payload (include csn_port toggle)
+  // txvr_set_prim_rx (false);
+  // digitalWrite (txvr_ce_port, HIGH);
+  // Delay
+  // digitalWrite (txvr_ce_port, LOW);
+  // txvr_set_prim_rx (true); 
+  // Delay
+  // digitalWrite (txvr_ce_port, HIGH);
+  
   digitalWrite (txvr_csn_port, LOW);
   spi_transfer (0xA0);
   spi_transfer (data[0]);
@@ -199,6 +211,7 @@ char txvr_transmit_payload (const char *data)
   spi_transfer (data[3]);
   spi_transfer (data[4]);
   digitalWrite (txvr_csn_port, HIGH);
+  
   digitalWrite (txvr_ce_port, HIGH);
   delayMicroseconds(200);
   digitalWrite (txvr_ce_port, LOW);

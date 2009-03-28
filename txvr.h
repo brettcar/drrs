@@ -2,7 +2,7 @@ typedef struct {
   uint8_t msgheader;
   uint8_t id;
   uint8_t msglen; 
-  uint8_t msgpayload[31];
+  uint8_t msgpayload[29];
 } PACKET;
 
 #define MAX 3
