@@ -1,6 +1,7 @@
 #include <EEPROM.h>
 #import "WProgram.h"
 #import "txvr.h"
+#import "config.h"
 
 extern char spi_transfer (volatile char data);
 
@@ -277,8 +278,8 @@ void queue_receive(C_QUEUE *queue) {
   // are for us, turn the LED on. If they are not destined for us,
   // check the entire loop for ACKs for that message. If an ACK is
   // found, then remove the ACK and the message from the queue.
-  int i, j;
-
+  register int i, j;
+  register bool foundPacket = false;
   if (queue_isEmpty(queue))
     return;
   for (i = queue->head; i < queue->tail; i++) {
@@ -286,18 +287,31 @@ void queue_receive(C_QUEUE *queue) {
     if (DESTINATION(thisPacket) == config_get_id() 
 	&& TYPE(thisPacket) == NORMAL)
       {
-	;
+	foundPacket = true;
 	// LED TURN ON
+	// Put an ACK into the queue for it.
       }
     else if (TYPE(thisPacket) == NORMAL) {
       // Packet not for us, search for an ACK with the same DEST and
       // ID.
       uint8_t dest = DESTINATION(thisPacket);
-      uint8_t src  = SOURCE(thisPacket);
+      uint8_t src  = SENDER(thisPacket);
       uint8_t id   = ID(thisPacket);
+      for (j = queue->head; j < queue->tail; j++)
+	{
+	  PACKET potentialACK = queue->msgs[j];
+	  if (DESTINATION(potentialACK) == dest
+	      && SENDER(potentialACK) == src
+	      && ID(potentialACK) == id
+	      && TYPE(potentialACK) == ACK)
+	    {
+	      // We have a match. Remove both packets from the queue.
+	    }
+	}
     }
-    
-
+  }
+  if (foundPacket == false)
+    ; // Turn LED OFF.
 }
 
 void queue_transmit(C_QUEUE *queue)

@@ -22,7 +22,7 @@ typedef struct {
   header |= 0, 1, 2, or 3;
 */
 
-enum { NORMAL = 0, ACK, RESERVED_0, RESERVED_1 } packet_types;
+enum { NORMAL = 0, ACK, RESERVED_0, RESERVED_1 };
 
 extern volatile bool txvr_rx_if;
 extern volatile bool txvr_tx_if;
