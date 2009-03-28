@@ -12,6 +12,7 @@ extern int currChoice;
 extern int currEntry;
 extern boolean inSetID;
 
+uint8_t config_get_id(void);
 void config_set_id(void);
 void config_set_freq(void);
 void config_set_bright(void);
