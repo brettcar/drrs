@@ -8,12 +8,10 @@ typedef struct {
 #define MAX 3
 
 typedef struct {
-  uint8_t head;
-  uint8_t tail;
-  PACKET msgs[MAX];  
+   uint8_t head;
+   uint8_t tail;
+   PACKET msgs[MAX];  
 }C_QUEUE;
-
-
 
 /* 
   header |= (destination & 0x7) << 5;        

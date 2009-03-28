@@ -4,7 +4,7 @@
 #import "config.h"
 #import "list.h"
 
-static List pktList;
+static DList pktList;
 
 extern char spi_transfer (volatile char data);
 
@@ -39,7 +39,7 @@ void txvr_isr()
 
 void txvr_setup (void)
 {
-  list_init(&pktList, free);
+  dlist_init(&pktList, free);
   
   txvr_set_pwr_up ();
   delay (100);
@@ -245,49 +245,68 @@ static inline uint8_t ID(PACKET * apkt) {
   return apkt->id;
 }
 
-void queue_receive(List *pkts) {
+static inline void packet_set_header(PACKET * pkt, uint8_t sender, uint8_t receiver, uint8_t type) {
+  pkt->msgheader = 0;
+  pkt->msgheader |= type & 0x3;
+  pkt->msgheader |= (sender & 0x7) << 2;
+  pkt->msgheader |= (receiver & 0x7) << 5;        
+}
+
+void queue_receive(DList *pkts) {
   // Loop through queue checking for messages destined for us. If they
   // are for us, turn the LED on. If they are not destined for us,
   // check the entire loop for ACKs for that message. If an ACK is
   // found, then remove the ACK and the message from the queue.
   register bool foundPacket = false;
-  if (list_size(pkts) == 0)
+  if (dlist_size(pkts) == 0)
     return;
   
-  ListElmt * thisElement;
-  for (thisElement = list_head(pkts); 
-       list_next(thisElement) != NULL; 
-       thisElement = list_next(thisElement)) {
+  DListElmt * thisElement;
+  for (thisElement = dlist_head(pkts); 
+       dlist_next(thisElement) != NULL; 
+       thisElement = dlist_next(thisElement)) {
     
-    PACKET * thisPacket = (PACKET*)list_data(thisElement);
-    if (DESTINATION(thisPacket) == 0//config_get_id() 
+    PACKET * thisPacket = (PACKET*)dlist_data(thisElement);
+    uint8_t dest = DESTINATION(thisPacket);
+    uint8_t src  = SENDER(thisPacket);
+    uint8_t id   = ID(thisPacket);
+
+    if (DESTINATION(thisPacket) == config_get_id() 
 	&& TYPE(thisPacket) == NORMAL)
       {
 	foundPacket = true;
 	// LED TURN ON
 	// Put an ACK into the queue for it.
+	PACKET * ack = (PACKET*)malloc(sizeof(PACKET));
+	if (ack == NULL)
+	  Serial.print("OUT OF MEMORY");
+
+	packet_set_header(ack, config_get_id(), src, ACK);
+	ack->id = id;
+	ack->msglen = 0;
       }
     else if (TYPE(thisPacket) == NORMAL) {
       // Packet not for us, search for an ACK with the same DEST and
       // ID.
-      uint8_t dest = DESTINATION(thisPacket);
-      uint8_t src  = SENDER(thisPacket);
-      uint8_t id   = ID(thisPacket);
-      for (ListElmt *subElmt  = list_head(pkts); 
-       list_next(subElmt) != NULL; 
-       subElmt = list_next(subElmt)) {
-	PACKET * potentialACK = list_data(subElmt);
+      bool foundAck = false;
+      for (DListElmt *subElmt  = dlist_head(pkts); 
+       dlist_next(subElmt) != NULL; 
+       subElmt = dlist_next(subElmt)) {
+	PACKET * potentialACK = (PACKET*)dlist_data(subElmt);
 	if (DESTINATION(potentialACK) == dest
 	    && SENDER(potentialACK) == src
 	    && ID(potentialACK) == id
 	    && TYPE(potentialACK) == ACK)
 	    {
-	      // We have a match. Remove both packets from the queue.
+	      dlist_remove(pkts, subElmt, NULL);
+	      foundAck = true;
 	    }
-	}
-      */
+      }
+      if (foundAck == true)
+	dlist_remove(pkts, thisElement, NULL);
     }
   }
+
   if (foundPacket == false)
     ; // Turn LED OFF.
-}
+}  
