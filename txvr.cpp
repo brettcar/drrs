@@ -4,7 +4,9 @@
 #import "config.h"
 #import "list.h"
 #import "display.h"
-static DList pktList;
+
+static DList pktList;  // List used to keep track of packets we need to transmit
+static DList inboxList;  // List used to store packets intended for us.
 
 extern char spi_transfer (volatile char data);
 
@@ -40,7 +42,7 @@ void txvr_isr()
 void txvr_setup (void)
 {
   dlist_init(&pktList, free);
-  
+  dlist_init(&inboxList, free);  
   txvr_set_pwr_up ();
   delay (100);
   txvr_set_rf_setup_reg ();
@@ -189,7 +191,7 @@ static inline uint8_t SENDER(PACKET * apkt) {
 }
 
 static inline uint8_t TYPE(PACKET * apkt) {
-  return apkt->msgheader & 0x02;
+  return apkt->msgheader & 0x03;
 }
 
 static inline uint8_t ID(PACKET * apkt) {
@@ -203,6 +205,39 @@ static inline void packet_set_header(PACKET * pkt, uint8_t sender, uint8_t recei
   pkt->msgheader |= (receiver & 0x7) << 5;        
 }
 
+// Assumption: newPkt is an ack
+// Find if there's a packet in our pktList that matches this ACK (if there is, delete it).
+// If the ack packet is for us, we're done
+// If the ack packet is not for us, transmit it (once).
+static void txvr_handle_ack(PACKET * newPkt)
+{
+    DListElmt * thisElement;
+    thisElement = dlist_head(&pktList);
+    do
+    {
+      PACKET * thisPacket = (PACKET*) dlist_data(thisElement);
+      // Find a packet in our list, that we sent to the person who just sent us this ack packet
+      // Toss this packet out of our list 
+      if(DESTINATION(thisPacket) == SENDER(newPkt)
+        && SENDER(thisPacket) == DESTINATION(newPkt) 
+        && ID(thisPacket) == ID(newPkt))
+      {
+        void * data;   
+       // No longer need to retransmit thisPacket so remove it from the list 
+        dlist_remove(&pktList, thisElement, &data);
+        free(data);
+        // Assumption: only one of thisPacket packets exists
+        break;
+      }
+      thisElement = dlist_next(thisElement);
+    } while(thisElement != NULL);      
+    // If this ack packet is NOT for us, transmit it 
+    if(DESTINATION(newPkt) != config_get_id())
+    {
+      txvr_transmit_payload(newPkt);
+    }
+    free(newPkt);   
+}
 
 void txvr_receive_payload (void)
 {
@@ -233,36 +268,29 @@ void txvr_receive_payload (void)
   
   // Check if this received packet is an ack intended for us. 
   // If it is, then deal with it and do not add it to the linked list
-  if(TYPE(newPkt) == ACK && DESTINATION(newPkt) == config_get_id())
+  if(TYPE(newPkt) == ACK)
   {
-    DListElmt * thisElement;
-    thisElement = dlist_head(&pktList);
-    do
-    {
-      PACKET * thisPacket = (PACKET*) dlist_data(thisElement);
-      // Find a packet in our list, that we sent to the person who just sent us this ack packet
-      // Toss this packet out of our list 
-      if(TYPE(thisPacket) == NORMAL && DESTINATION(thisPacket) == SENDER(newPkt)
-        && SENDER(thisPacket) == config_get_id() 
-        && SENDER(thisPacket) == DESTINATION(newPkt) 
-        && ID(thisPacket) == ID(newPkt))
-      {
-        void * data;   
-       // No longer need to retransmit thisPacket so remove it from the list 
-        dlist_remove(&pktList, thisElement, &data);
-        free(data);
-        // Assumption: only one of thisPacket packets exists
-        break;
-      }
-      thisElement = dlist_next(thisElement);
-    } while(thisElement != NULL);      
-    free(newPkt); 
+    txvr_handle_ack(newPkt);
   }
+  // Else if this is a normal packet intended for us, put it in the inboxList
+  // and send out an ack msg.
+  else if(TYPE(newPkt) == NORMAL && DESTINATION(newPkt) == config_get_id())
+  {
+    dlist_ins_next(&inboxList, dlist_head(&inboxList), newPkt);
+    
+    // We found a message intended for us.
+    // Send out an ack. 
+    PACKET ack;
+    packet_set_header(&ack, config_get_id(), SENDER(newPkt), ACK);
+    ack.id = ID(newPkt);
+    ack.msglen = 0;      
+    txvr_transmit_payload(&ack);    
+  } 
   else // for any other kind of packet, ACK or NORMAL, put it in the list
     dlist_ins_next(&pktList, dlist_head(&pktList), newPkt);  
 }
 
-char txvr_transmit_payload (PACKET * packet)
+char txvr_transmit_payload (const PACKET * packet)
 {
   // Assumption: txvr is in RX mode
   digitalWrite(txvr_ce_port, LOW);
@@ -324,8 +352,11 @@ void packet_print(PACKET * pkt) {
     case ACK:
       Serial.print("A");
       break;
-    default:
-      Serial.print("U");
+    case RESERVED_0:
+      Serial.print("R0");
+      break;
+    case RESERVED_1:
+      Serial.print("R1");
       break;
   }
   Serial.print(") Id(");
@@ -391,100 +422,82 @@ void list_test_insert(void)
 }
 #endif
 
+// Retruns true if the packet has timed out
+static boolean txvr_handle_tx_packet(PACKET * packet)
+{
+  Serial.print("type-");
+  Serial.print(TYPE(packet), HEX);
+  delay(1000);
+  uint8_t sender = SENDER(packet);
+  uint8_t dest = DESTINATION(packet);
+  switch(TYPE(packet))
+  {
+    // If this is normal packet, transmit it and change its type to RESERVED_0
+    case NORMAL:
+      txvr_transmit_payload(packet);
+      packet_set_header(packet, sender, dest, RESERVED_0);      
+      break;
+    case RESERVED_0:
+      Serial.print("InR0case ");
+      delay(1500);
+      packet_set_header(packet, sender, dest, NORMAL);      
+      txvr_transmit_payload(packet);
+      packet_set_header(packet, sender, dest, RESERVED_1);      
+      break;
+    case RESERVED_1:
+      packet_set_header(packet, sender, dest, NORMAL);      
+      txvr_transmit_payload(packet);
+      return true;
+    // Undefined case
+    default:
+      return true;
+  }
+  return false;
+}
+
 void queue_transmit(void) 
 {
   // Iterate through our list and find every message that is not intended for us
-  // These messages will be txeddlist_ins_next(&pktList, dlist_head(&pktList), pkt);
+  // These messages will be txed
   if(dlist_size(&pktList) == 0)
     return;
+    
   DListElmt * thisElement;
   thisElement = dlist_head(&pktList);
   do
   {
     PACKET * thisPacket = (PACKET*) dlist_data(thisElement);
-    uint8_t dest = DESTINATION(thisPacket);
-    if(dest != config_get_id())
+    if(txvr_handle_tx_packet(thisPacket) == true) // if handle_tx_packets is true, delete this element
     {
-       // Transmit
-      txvr_transmit_payload(thisPacket);
+      Serial.print("deleting"); 
+      delay(1000);
+       void * data;
+       DListElmt * tmp = thisElement;
+       thisElement = dlist_next(thisElement);
+       dlist_remove(&pktList, tmp, &data);
+       free(data);
     }
-    thisElement = dlist_next(thisElement);
+    else // else keep iterating like normal
+    {
+      thisElement = dlist_next(thisElement);
+    }
   }while(thisElement != NULL);      
 }
 
 void queue_receive(void) {
-  // Loop through queue checking for messages destined for us. If they
-  // are for us, turn the LED on. If they are not destined for us,
-  // check the entire loop for ACKs for that message. If an ACK is
-  // found, then remove the ACK and the message from the queue.
-  register bool foundPacket = false;
   if (dlist_size(&pktList) == 0)
     return;
 
-
    Serial.print("LSZ-");
    Serial.print(dlist_size(&pktList), HEX);
-   DListElmt * thisElement;
-   thisElement = dlist_head(&pktList); 
-
-   do{
+   
+   DListElmt * thisElement = dlist_head(&pktList); 
+   do {
     PACKET * thisPacket = (PACKET*)dlist_data(thisElement);
-    uint8_t dest = DESTINATION(thisPacket);
-    uint8_t src  = SENDER(thisPacket);
-    uint8_t id   = ID(thisPacket);
-    bool removePacket = false;
     Serial.print("CLEARING ");
-    delay(300);
+    delay(500);
     display_clear();
-    if (dest == config_get_id() 
-	&& TYPE(thisPacket) == NORMAL)
-    {
-	foundPacket = true;
-	// LED TURN ON
-	// Put an ACK into the queue for it.
-        PACKET ack;
-        packet_set_header(&ack, config_get_id(), src, ACK);
-        ack.id = id;
-        ack.msglen = 0;      
-        txvr_transmit_payload(&ack);
-
-        packet_print(thisPacket);
-        removePacket = true;
-    }
-/*
-    else if (TYPE(thisPacket) == NORMAL) {
-      // Packet not for us, search for an ACK with the same DEST and
-      // ID.
-      bool foundAck = false;
-      
-      DListElmt *subElmt  = dlist_head(&pktList);
-      do {
-        PACKET * potentialACK = (PACKET*)dlist_data(subElmt);
-	if (DESTINATION(potentialACK) == dest
-	    && SENDER(potentialACK) == src
-	    && ID(potentialACK) == id
-	    && TYPE(potentialACK) == ACK)
-	    {
-	      dlist_remove(&pktList, subElmt, NULL);
-	      foundAck = true;
-	    }
-       subElmt = dlist_next(subElmt);      
-      }while(subElmt != NULL);
-       
-      if (foundAck == true)
-	dlist_remove(&pktList, thisElement, NULL);
-    } // End else if(TYPE...
-  */  
-    DListElmt * tmpElement = thisElement;
+    packet_print(thisPacket);
     thisElement = dlist_next(thisElement);
-    void * data;
-    if (removePacket) {
-      dlist_remove(&pktList, tmpElement, &data);
-      free(data);
-    }
- 
-   }while(thisElement != NULL); // End while
-
-  if (foundPacket == false)
-    ; // Turn LED OFF.
+   } while(thisElement != NULL); 
 }  

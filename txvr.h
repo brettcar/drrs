@@ -6,7 +6,11 @@ typedef struct {
 } PACKET;
 
 // Packet Type Codes
-enum { NORMAL = 0, ACK, RESERVED_0, RESERVED_1 };
+#define NORMAL      0
+#define ACK         1
+#define RESERVED_0  2
+#define RESERVED_1  3
+//enum { NORMAL = 0, ACK = 1, RESERVED_0 = 2, RESERVED_1 = 3 };
 
 extern volatile bool txvr_rx_if;
 extern volatile bool txvr_tx_if;
@@ -29,7 +33,7 @@ void txvr_set_rx_pw_p0 (unsigned char length);
 void txvr_set_tx_addr (unsigned char *addr);
 void txvr_setup (void);
 void txvr_setup_ports (void);
-char txvr_transmit_payload (const char *data);
+char txvr_transmit_payload (const PACKET * packet);
 void write_txvr_reg(char reg, char val);
 void queue_receive(void);
 void queue_transmit(void);
