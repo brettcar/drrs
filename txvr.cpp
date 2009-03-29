@@ -176,6 +176,34 @@ char txvr_set_pwr_up (void)
   digitalWrite (txvr_csn_port, HIGH);
 }
 
+static inline uint8_t DESTINATION(PACKET * bpkt) {
+  uint8_t tmp = bpkt->msgheader & 0xE0;
+  tmp >>= 5;
+  return tmp;
+}
+
+static inline uint8_t SENDER(PACKET * apkt) {
+  uint8_t tmp = apkt->msgheader & 0x1C;
+  tmp >>= 2;
+  return tmp;
+}
+
+static inline uint8_t TYPE(PACKET * apkt) {
+  return apkt->msgheader & 0x02;
+}
+
+static inline uint8_t ID(PACKET * apkt) {
+  return apkt->id;
+}
+
+static inline void packet_set_header(PACKET * pkt, uint8_t sender, uint8_t receiver, uint8_t type) {
+  pkt->msgheader = 0;
+  pkt->msgheader |= type & 0x3;
+  pkt->msgheader |= (sender & 0x7) << 2;
+  pkt->msgheader |= (receiver & 0x7) << 5;        
+}
+
+
 void txvr_receive_payload (void)
 {
   uint8_t reg = read_txvr_reg(0x07); // STATUS register
@@ -191,16 +219,47 @@ void txvr_receive_payload (void)
     Serial.print("Out of Memory");
     return;
   }
+
   uint8_t * ptr = (uint8_t*) newPkt;
+
+  // Get packet bytes over SPI interface
   digitalWrite(txvr_csn_port, LOW);
   spi_transfer(0x61); // R_RX_PAYLOAD command
   for (register int i = 0; i < 32; i++) {
-    uint8_t val = spi_transfer(TXVR_NOP_CMD);
-    *ptr = val;//spi_transfer(TXVR_NOP_CMD);
+    *ptr = spi_transfer(TXVR_NOP_CMD);
     ptr++;  
   }
   digitalWrite(txvr_csn_port, HIGH);
-  dlist_ins_next(&pktList, dlist_head(&pktList), newPkt);  
+  
+  // Check if this received packet is an ack intended for us. 
+  // If it is, then deal with it and do not add it to the linked list
+  if(TYPE(newPkt) == ACK && DESTINATION(newPkt) == config_get_id())
+  {
+    DListElmt * thisElement;
+    thisElement = dlist_head(&pktList);
+    do
+    {
+      PACKET * thisPacket = (PACKET*) dlist_data(thisElement);
+      // Find a packet in our list, that we sent to the person who just sent us this ack packet
+      // Toss this packet out of our list 
+      if(TYPE(thisPacket) == NORMAL && DESTINATION(thisPacket) == SENDER(newPkt)
+        && SENDER(thisPacket) == config_get_id() 
+        && SENDER(thisPacket) == DESTINATION(newPkt) 
+        && ID(thisPacket) == ID(newPkt))
+      {
+        void * data;   
+       // No longer need to retransmit thisPacket so remove it from the list 
+        dlist_remove(&pktList, thisElement, &data);
+        free(data);
+        // Assumption: only one of thisPacket packets exists
+        break;
+      }
+      thisElement = dlist_next(thisElement);
+    } while(thisElement != NULL);      
+    free(newPkt); 
+  }
+  else // for any other kind of packet, ACK or NORMAL, put it in the list
+    dlist_ins_next(&pktList, dlist_head(&pktList), newPkt);  
 }
 
 char txvr_transmit_payload (PACKET * packet)
@@ -250,32 +309,6 @@ char read_txvr_reg(char reg)
   return value;
 }
 
-static inline uint8_t DESTINATION(PACKET * bpkt) {
-  uint8_t tmp = bpkt->msgheader & 0xE0;
-  tmp >>= 5;
-  return tmp;
-}
-
-static inline uint8_t SENDER(PACKET * apkt) {
-  uint8_t tmp = apkt->msgheader & 0x1C;
-  tmp >>= 2;
-  return tmp;
-}
-
-static inline uint8_t TYPE(PACKET * apkt) {
-  return apkt->msgheader & 0x02;
-}
-
-static inline uint8_t ID(PACKET * apkt) {
-  return apkt->id;
-}
-
-static inline void packet_set_header(PACKET * pkt, uint8_t sender, uint8_t receiver, uint8_t type) {
-  pkt->msgheader = 0;
-  pkt->msgheader |= type & 0x3;
-  pkt->msgheader |= (sender & 0x7) << 2;
-  pkt->msgheader |= (receiver & 0x7) << 5;        
-}
 
 void packet_print(PACKET * pkt) {
   Serial.print("[PKT: Dst(");
