@@ -78,7 +78,7 @@ void txvr_setup (void)
   digitalWrite (txvr_csn_port, HIGH);
 
   //Attach interrupt to dataRecIF
-  attachInterrupt(0, txvr_isr, LOW);
+  //attachInterrupt(0, txvr_isr, LOW);
   
   txvr_set_prim_rx(true); // Enable RX mode
   digitalWrite(txvr_ce_port, HIGH);
