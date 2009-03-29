@@ -7,6 +7,7 @@
 
 static DList pktList;  // List used to keep track of packets we need to transmit
 static DList inboxList;  // List used to store packets intended for us.
+static DList ackList;
 
 extern char spi_transfer (volatile char data);
 
@@ -36,7 +37,7 @@ void txvr_isr()
   }
   value |= 0b1110000;  
   write_txvr_reg(7, value);
-    
+  while(!(txvr_receive_payload() & 0x0E));
 }
 
 void txvr_setup (void)
@@ -80,7 +81,7 @@ void txvr_setup (void)
   digitalWrite (txvr_csn_port, HIGH);
 
   //Attach interrupt to dataRecIF
-  //attachInterrupt(0, txvr_isr, LOW);
+  attachInterrupt(0, txvr_isr, LOW);
   
   txvr_set_prim_rx(true); // Enable RX mode
   digitalWrite(txvr_ce_port, HIGH);
@@ -212,7 +213,7 @@ static inline void packet_set_header(PACKET * pkt, uint8_t sender, uint8_t recei
 static void txvr_handle_ack(PACKET * newPkt)
 {
     DListElmt * thisElement;
-    thisElement = dlist_head(&pktList);
+    thisElement = dlist_head(&ackList);
     do
     {
       PACKET * thisPacket = (PACKET*) dlist_data(thisElement);
@@ -239,20 +240,19 @@ static void txvr_handle_ack(PACKET * newPkt)
     free(newPkt);   
 }
 
-void txvr_receive_payload (void)
+uint8_t txvr_receive_payload (void)
 {
   uint8_t reg = read_txvr_reg(0x07); // STATUS register
-  reg &= 0x0E;
   if (reg & 0x0E) {
     // FIFO is empty but we were told to receive?
-    return;
+    return reg;
   }
   
   PACKET * newPkt = (PACKET*) malloc(32);
   if (newPkt == NULL)
   {
     Serial.print("Out of Memory");
-    return;
+    return reg;
   }
 
   uint8_t * ptr = (uint8_t*) newPkt;
@@ -270,13 +270,35 @@ void txvr_receive_payload (void)
   // If it is, then deal with it and do not add it to the linked list
   if(TYPE(newPkt) == ACK)
   {
+    Serial.print("Call-handle-ack ");
     txvr_handle_ack(newPkt);
   }
   // Else if this is a normal packet intended for us, put it in the inboxList
   // and send out an ack msg.
   else if(TYPE(newPkt) == NORMAL && DESTINATION(newPkt) == config_get_id())
   {
-    dlist_ins_next(&inboxList, dlist_head(&inboxList), newPkt);
+    boolean packet_duped = false;
+    // Check to see if we already have this message in our inbox. If we do, do not put it there, just re-send ACK.
+    DListElmt * thisElement;
+    thisElement = dlist_head(&inboxList);    
+    do
+    {
+      PACKET * thisPacket = (PACKET*) dlist_data(thisElement);
+      if(ID(thisPacket) == ID(newPkt))
+      {
+        packet_duped = true;
+        break;
+      } 
+      thisElement = dlist_next(thisElement);
+    }while(thisElement != NULL);      
+    
+    // If this isn't a duplicate packet, then put it in our inbox list.
+    if(packet_duped == false)
+    {
+      Serial.print("Put-in-inbox ");
+      dlist_ins_next(&inboxList, dlist_head(&inboxList), newPkt);
+      packet_print(newPkt);
+    }
     
     // We found a message intended for us.
     // Send out an ack. 
@@ -285,9 +307,14 @@ void txvr_receive_payload (void)
     ack.id = ID(newPkt);
     ack.msglen = 0;      
     txvr_transmit_payload(&ack);    
+    Serial.print("SENT ACK");
+    return reg;
   } 
-  else // for any other kind of packet, ACK or NORMAL, put it in the list
+  else { // for any other kind of packet, ACK or NORMAL, put it in the list
+    Serial.print("Other-pkt ");
+    packet_print(newPkt);
     dlist_ins_next(&pktList, dlist_head(&pktList), newPkt);  
+  }
 }
 
 char txvr_transmit_payload (const PACKET * packet)
@@ -342,7 +369,7 @@ void packet_print(PACKET * pkt) {
   Serial.print("[PKT: Dst(");
   Serial.print(DESTINATION(pkt), HEX);
   Serial.print(") Src(");
-  delay(1000);
+//  delay(1000);
   Serial.print(SENDER(pkt), HEX);
   Serial.print(") Type(");
   switch(TYPE(pkt)) {
@@ -360,14 +387,14 @@ void packet_print(PACKET * pkt) {
       break;
   }
   Serial.print(") Id(");
-  delay(1000);
+//  delay(1000);
   Serial.print(ID(pkt), HEX);
   Serial.print(") Msglen(");
   Serial.print(pkt->msglen, HEX);
   Serial.print(") Data: ");
   Serial.print(pkt->msgpayload[0]);
   Serial.print(" ");
-  delay(1000);
+//  delay(1000);
 }
 
 void list_test_send(void)
@@ -425,9 +452,6 @@ void list_test_insert(void)
 // Retruns true if the packet has timed out
 static boolean txvr_handle_tx_packet(PACKET * packet)
 {
-  Serial.print("type-");
-  Serial.print(TYPE(packet), HEX);
-  delay(1000);
   uint8_t sender = SENDER(packet);
   uint8_t dest = DESTINATION(packet);
   switch(TYPE(packet))
@@ -438,8 +462,6 @@ static boolean txvr_handle_tx_packet(PACKET * packet)
       packet_set_header(packet, sender, dest, RESERVED_0);      
       break;
     case RESERVED_0:
-      Serial.print("InR0case ");
-      delay(1500);
       packet_set_header(packet, sender, dest, NORMAL);      
       txvr_transmit_payload(packet);
       packet_set_header(packet, sender, dest, RESERVED_1);      
@@ -464,13 +486,12 @@ void queue_transmit(void)
     
   DListElmt * thisElement;
   thisElement = dlist_head(&pktList);
+  
   do
   {
     PACKET * thisPacket = (PACKET*) dlist_data(thisElement);
     if(txvr_handle_tx_packet(thisPacket) == true) // if handle_tx_packets is true, delete this element
-    {
-      Serial.print("deleting"); 
-      delay(1000);
+    { 
        void * data;
        DListElmt * tmp = thisElement;
        thisElement = dlist_next(thisElement);
@@ -483,21 +504,3 @@ void queue_transmit(void)
     }
   }while(thisElement != NULL);      
 }
-
-void queue_receive(void) {
-  if (dlist_size(&pktList) == 0)
-    return;
-
-   Serial.print("LSZ-");
-   Serial.print(dlist_size(&pktList), HEX);
-   
-   DListElmt * thisElement = dlist_head(&pktList); 
-   do {
-    PACKET * thisPacket = (PACKET*)dlist_data(thisElement);
-    Serial.print("CLEARING ");
-    delay(500);
-    display_clear();
-    packet_print(thisPacket);
-    thisElement = dlist_next(thisElement);
-   } while(thisElement != NULL); 
-}  

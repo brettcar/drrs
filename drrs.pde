@@ -52,24 +52,15 @@ void setup (void)
 void loop(void)
 {
   display_clear();
-  queue_receive();
+  txvr_receive_payload();  
   queue_transmit();
-  
+  delay(6000);
   #ifdef KEYPAD_DEBUG
   //Do nothing, wait for keypad interrupt    
     keypad_service();
   #endif
 
-  
-  // TODO: Key assumption is that loop() is always
-  // operating when the transceiver is in RX mode.
-  // This implies that CE is high and PRIM_RX is set. 
-  // Only the final transmit payload function should fuss with CE/PRIM_RX.
- // if (txvr_rx_if) { 
-    // Packet is waiting for us... there could be more than 1 waiting.
-      txvr_receive_payload();
-      txvr_rx_if = false;
- // }
+  txvr_receive_payload();
 }
 
 char spi_transfer (volatile char data)

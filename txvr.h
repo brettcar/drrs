@@ -1,3 +1,4 @@
+
 typedef struct {
   uint8_t msgheader;
   uint8_t id;
@@ -23,7 +24,7 @@ const int txvr_miso_port = 12;
 const int txvr_sck_port = 13;
 
 char read_txvr_reg(char reg);
-void txvr_receive_payload (void);
+uint8_t txvr_receive_payload (void);
 void txvr_set_frequency (int offset);
 char txvr_set_prim_rx (bool enable);
 char txvr_set_pwr_up (void);
@@ -39,3 +40,4 @@ void queue_receive(void);
 void queue_transmit(void);
 void list_test_insert(void);
 void list_test_send(void);
+void packet_print(PACKET * pkt);
