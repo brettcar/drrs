@@ -31,6 +31,7 @@ void txvr_isr()
   // Check if RX_DR bit is set
   if (0b01000000 & value) {
     txvr_rx_if = true;    
+    Serial.print("GOTISR");
   }
   value |= 0b1110000;  
   write_txvr_reg(7, value);
@@ -53,7 +54,6 @@ void txvr_setup (void)
   digitalWrite (txvr_csn_port, HIGH);
 
   // Disable auto retransmit
-  // Set radio address width in SETUP_AW
   digitalWrite (txvr_csn_port, LOW);
   spi_transfer (0x24);
   spi_transfer (0x00);
@@ -68,7 +68,7 @@ void txvr_setup (void)
   //Set our unique address
   unsigned char addr[] = { 0xDA, 0xBE, 0xEF };
   txvr_set_rx_addr_p0 (addr);
-  txvr_set_rx_pw_p0 (5);
+  txvr_set_rx_pw_p0 (32);
 
   txvr_set_tx_addr (addr);
 
@@ -80,17 +80,19 @@ void txvr_setup (void)
 
   //Attach interrupt to dataRecIF
   attachInterrupt(0, txvr_isr, LOW);
-
+  
+  txvr_set_prim_rx(true); // Enable RX mode
+  digitalWrite(txvr_ce_port, HIGH);
 }
 
 //Set the static payload length for pipe 0
-//              length is specified as 1 for 1 byte, 2 for
-	      //2 bytes,..., 31 for 31 bytes, up to 32.
+// length is specified as 1 for 1 byte, 2 for
+// 2 bytes,..., 31 for 31 bytes, up to 32.
 void txvr_set_rx_pw_p0 (unsigned char length)
 {
   digitalWrite (txvr_csn_port, LOW);
   spi_transfer (0x31);
-//Write to rx_pw_p0 register
+  // Write to rx_pw_p0 register
   spi_transfer (length);
   digitalWrite (txvr_csn_port, HIGH);
 }
@@ -124,7 +126,7 @@ void txvr_set_rf_setup_reg (void)
   digitalWrite (txvr_csn_port, LOW);
   spi_transfer (0x26);
   //write to RF_SETUP
-  spi_transfer (0b00000001);
+  spi_transfer (0x01);
   //data to write
   digitalWrite (txvr_csn_port, HIGH);
 }
@@ -196,18 +198,14 @@ void txvr_receive_payload (void)
     *ptr = spi_transfer(TXVR_NOP_CMD);
     ptr++;  
   }
-  dlist_ins_next(&pktList, dlist_head(&pktList), newPkt);
-  
+  dlist_ins_next(&pktList, dlist_head(&pktList), newPkt);  
 }
 
 char txvr_transmit_payload (PACKET * packet)
 {
   // Assumption: txvr is in RX mode
-  
-
   digitalWrite(txvr_ce_port, LOW);
-  digitalWrite(txvr_csn_port, LOW);
-  
+  digitalWrite(txvr_csn_port, LOW);  
   spi_transfer(0xA0);
   spi_transfer(packet->msgheader);
   spi_transfer(packet->id);
@@ -218,18 +216,11 @@ char txvr_transmit_payload (PACKET * packet)
   digitalWrite(txvr_csn_port, HIGH);
   txvr_set_prim_rx(false);
   digitalWrite(txvr_ce_port, HIGH);
-  delayMicroseconds(200);
+  delay(100);
+  digitalWrite(txvr_ce_port, LOW);
+  txvr_set_prim_rx(true);
   digitalWrite(txvr_ce_port, HIGH);
-
-  // txr instructions    
-  // Write FIFO payload (include csn_port toggle)
-  // txvr_set_prim_rx (false);
-  // digitalWrite (txvr_ce_port, HIGH);
-  // Delay
-  // digitalWrite (txvr_ce_port, LOW);
-  // txvr_set_prim_rx (true); 
-  // Delay
-  // digitalWrite (txvr_ce_port, HIGH);
+  delay(10);
 }
 
 // write an 8-bit reg
@@ -329,7 +320,6 @@ void list_test_send(void)
   dlist_ins_next(&pktList, dlist_head(&pktList), pkt);
   // Transmit the packet
   queue_transmit();
-  Serial.print("success?");
 }
 
 #if 0
@@ -370,7 +360,7 @@ void list_test_insert(void)
 void queue_transmit(void) 
 {
   // Iterate through our list and find every message that is not intended for us
-  // These messages will be txed
+  // These messages will be txeddlist_ins_next(&pktList, dlist_head(&pktList), pkt);
   if(dlist_size(&pktList) == 0)
     return;
   DListElmt * thisElement;
@@ -405,7 +395,7 @@ void queue_receive(void) {
     uint8_t dest = DESTINATION(thisPacket);
     uint8_t src  = SENDER(thisPacket);
     uint8_t id   = ID(thisPacket);
-
+    Serial.print("in do-while");
     if (dest == config_get_id() 
 	&& TYPE(thisPacket) == NORMAL)
       {
@@ -413,12 +403,19 @@ void queue_receive(void) {
 	// LED TURN ON
 	// Put an ACK into the queue for it.
 	PACKET * ack = (PACKET*)malloc(sizeof(PACKET));
-	if (ack == NULL)
+	if (ack == NULL) {
 	  Serial.print("OUT OF MEMORY");
-
+          return;
+        }
 	packet_set_header(ack, config_get_id(), src, ACK);
 	ack->id = id;
 	ack->msglen = 0;
+        // TODO: Put into queue.
+        
+        void * data;
+        dlist_remove(&pktList, thisElement, &data);
+        packet_print((PACKET*) data);
+        free(data);
       }
     else if (TYPE(thisPacket) == NORMAL) {
       // Packet not for us, search for an ACK with the same DEST and

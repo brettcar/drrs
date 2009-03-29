@@ -25,9 +25,16 @@ void config_set_id(void)
   
 }
 
+// TODO: Fix this. BOARD_0 is the recvr, if not board 0 then its the txmitter.
+#define BOARD_0
 uint8_t config_get_id(void)
 {
-  return EEPROM.read(0);
+  #ifdef BOARD_0
+    return 0;
+  #else
+    return 1;
+  #endif
+//  return EEPROM.read(0);
 }
 
 

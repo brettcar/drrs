@@ -4,10 +4,6 @@
 #import "txvr.h"
 #import "config.h"
 #import "WProgram.h"
-/*
-#define BOARD_1   // BOARD_1 = Primary Transmitter
-#define BOARD_2   // BOARD_2 = Primarty Receiver
-*/
 
 //#define KEYPAD_DEBUG // For keypad debugging
 //#define UNIT_TEST
@@ -34,8 +30,8 @@ void setup (void)
   clr = SPDR;
   delay (10);
   /* End Configure SPI */
-Serial.print("HALP");
-delay(5); 
+  Serial.print("HALP");
+  delay(5); 
   txvr_setup ();
   delay(100);
   display_setup_lcd ();
@@ -49,15 +45,23 @@ delay(5);
   #ifdef UNIT_TEST
   //test_ram_write();
   #endif
-  //list_test_insert();
+    list_test_insert();
   list_test_send();
 }
 
 void loop(void)
 {
-  queue_receive();
-  delay(500);
-  queue_transmit();
+  uint8_t reg = read_txvr_reg(0x07); // STATUS register
+  reg &= 0x0E;
+  Serial.print("STATUS(");
+  Serial.print(reg,HEX);
+  Serial.print(")");
+
+
+  //queue_receive();
+  delay(1000);
+  if (config_get_id() == 1)
+    queue_transmit();
  
   #ifdef UNIT_TEST
   //test_ram_read();
@@ -69,16 +73,17 @@ void loop(void)
   //Do nothing, wait for keypad interrupt    
     keypad_service();
   #endif
+
   
   // TODO: Key assumption is that loop() is always
   // operating when the transceiver is in RX mode.
   // This implies that CE is high and PRIM_RX is set. 
   // Only the final transmit payload function should fuss with CE/PRIM_RX.
-//  if (txvr_rx_if) { 
+  if (txvr_rx_if) { 
     // Packet is waiting for us... there could be more than 1 waiting.
       txvr_receive_payload();
       txvr_rx_if = false;
- // }
+  }
 }
 
 char spi_transfer (volatile char data)
