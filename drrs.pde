@@ -74,11 +74,11 @@ void loop(void)
   // operating when the transceiver is in RX mode.
   // This implies that CE is high and PRIM_RX is set. 
   // Only the final transmit payload function should fuss with CE/PRIM_RX.
-  if (txvr_rx_if) { 
+//  if (txvr_rx_if) { 
     // Packet is waiting for us... there could be more than 1 waiting.
       txvr_receive_payload();
       txvr_rx_if = false;
-  }
+ // }
 }
 
 char spi_transfer (volatile char data)

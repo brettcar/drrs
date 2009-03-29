@@ -177,20 +177,27 @@ char txvr_set_pwr_up (void)
 
 void txvr_receive_payload (void)
 {
-  char payload[6];
-  digitalWrite (txvr_csn_port, LOW);
-  spi_transfer (0x61);
-  payload[0] = spi_transfer (TXVR_NOP_CMD);
-  payload[1] = spi_transfer (TXVR_NOP_CMD);
-  payload[2] = spi_transfer (TXVR_NOP_CMD);
-  payload[3] = spi_transfer (TXVR_NOP_CMD);
-  payload[4] = spi_transfer (TXVR_NOP_CMD);
-  payload[5] = '\0';
-  digitalWrite (txvr_csn_port, HIGH);
-  Serial.print(0xFE, BYTE);
-  Serial.print(0x01, BYTE);
-  delay(150);
-  Serial.print (payload);
+  uint8_t reg = read_txvr_reg(0x07); // STATUS register
+  reg &= 0x0E;
+  if (reg & 0x0E) {
+    // FIFO is empty but we were told to receive?
+    return;
+  }
+  
+  PACKET * newPkt = (PACKET*) malloc(32);
+  if (newPkt == NULL)
+  {
+    Serial.print("Out of Memory");
+    return;
+  }
+  uint8_t * ptr = (uint8_t*) newPkt;
+  spi_transfer(0x61); // R_RX_PAYLOAD command
+  for (register int i = 0; i < 32; i++) {
+    *ptr = spi_transfer(TXVR_NOP_CMD);
+    ptr++;  
+  }
+  dlist_ins_next(&pktList, dlist_head(&pktList), newPkt);
+  
 }
 
 char txvr_transmit_payload (PACKET * packet)
