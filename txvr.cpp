@@ -3,7 +3,7 @@
 #import "txvr.h"
 #import "config.h"
 #import "list.h"
-
+#import "display.h"
 static DList pktList;
 
 extern char spi_transfer (volatile char data);
@@ -31,7 +31,6 @@ void txvr_isr()
   // Check if RX_DR bit is set
   if (0b01000000 & value) {
     txvr_rx_if = true;    
-    Serial.print("GOTISR");
   }
   value |= 0b1110000;  
   write_txvr_reg(7, value);
@@ -193,11 +192,14 @@ void txvr_receive_payload (void)
     return;
   }
   uint8_t * ptr = (uint8_t*) newPkt;
+  digitalWrite(txvr_csn_port, LOW);
   spi_transfer(0x61); // R_RX_PAYLOAD command
   for (register int i = 0; i < 32; i++) {
-    *ptr = spi_transfer(TXVR_NOP_CMD);
+    uint8_t val = spi_transfer(TXVR_NOP_CMD);
+    *ptr = val;//spi_transfer(TXVR_NOP_CMD);
     ptr++;  
   }
+  digitalWrite(txvr_csn_port, HIGH);
   dlist_ins_next(&pktList, dlist_head(&pktList), newPkt);  
 }
 
@@ -207,11 +209,16 @@ char txvr_transmit_payload (PACKET * packet)
   digitalWrite(txvr_ce_port, LOW);
   digitalWrite(txvr_csn_port, LOW);  
   spi_transfer(0xA0);
+  Serial.print(packet->msgheader);
   spi_transfer(packet->msgheader);
+  Serial.print(packet->id);
   spi_transfer(packet->id);
+  Serial.print(packet->msglen);
   spi_transfer(packet->msglen);
-  for(int i = 0; i < 29; i++)
+  for(int i = 0; i < 29; i++) {
     spi_transfer(packet->msgpayload[i]);
+    Serial.print(packet->msgpayload[i]);
+  }
   
   digitalWrite(txvr_csn_port, HIGH);
   txvr_set_prim_rx(false);
@@ -244,11 +251,15 @@ char read_txvr_reg(char reg)
 }
 
 static inline uint8_t DESTINATION(PACKET * bpkt) {
-  return bpkt->msgheader & 0xE0 >> 5;
+  uint8_t tmp = bpkt->msgheader & 0xE0;
+  tmp >>= 5;
+  return tmp;
 }
 
 static inline uint8_t SENDER(PACKET * apkt) {
-  return apkt->msgheader & 0x1C >> 2;
+  uint8_t tmp = apkt->msgheader & 0x1C;
+  tmp >>= 2;
+  return tmp;
 }
 
 static inline uint8_t TYPE(PACKET * apkt) {
@@ -270,35 +281,30 @@ void packet_print(PACKET * pkt) {
   Serial.print("[PKT: Dst(");
   Serial.print(DESTINATION(pkt), HEX);
   Serial.print(") Src(");
-  delay(100);
+  delay(1000);
   Serial.print(SENDER(pkt), HEX);
   Serial.print(") Type(");
-  switch(TYPE(pkt), HEX) {
+  switch(TYPE(pkt)) {
     case NORMAL:
-      Serial.print("NORMAL");
+      Serial.print("N");
       break;
     case ACK:
-      Serial.print("ACK");
+      Serial.print("A");
       break;
     default:
-      Serial.print("UNK");
+      Serial.print("U");
       break;
   }
   Serial.print(") Id(");
   delay(1000);
   Serial.print(ID(pkt), HEX);
-  Serial.print("Msglen(");
+  Serial.print(") Msglen(");
   Serial.print(pkt->msglen, HEX);
   Serial.print(") Data: ");
-  delay(250);
-  /*for (int i = 0; i < 20; i++) {
-    Serial.print(pkt->msgpayload[i], HEX);
-    delay(50);
-   
-  }*/
-  Serial.print("]");
+  Serial.print(pkt->msgpayload[0]);
+  Serial.print(" ");
+  delay(1000);
 }
-
 
 void list_test_send(void)
 {
@@ -308,18 +314,14 @@ void list_test_send(void)
   uint8_t sender = 1;
   uint8_t receiver = 0;
   uint8_t type = NORMAL;
-  uint8_t id = 0;
-  uint8_t msglen = 29;
   
   packet_set_header(pkt, sender, receiver, type);
-  pkt->id = id;
-  pkt->msglen = msglen;
+  pkt->id = 0;
+  pkt->msglen = 29;
   memset(pkt->msgpayload, 'A', 29);
   
   // Put the packet in the list
   dlist_ins_next(&pktList, dlist_head(&pktList), pkt);
-  // Transmit the packet
-  queue_transmit();
 }
 
 #if 0
@@ -356,7 +358,6 @@ void list_test_insert(void)
 }
 #endif
 
-
 void queue_transmit(void) 
 {
   // Iterate through our list and find every message that is not intended for us
@@ -386,6 +387,11 @@ void queue_receive(void) {
   register bool foundPacket = false;
   if (dlist_size(&pktList) == 0)
     return;
+  else
+  {
+   Serial.print("LSZ-");
+   Serial.print(dlist_size(&pktList), HEX);
+  }
   
   DListElmt * thisElement;
   thisElement = dlist_head(&pktList);
@@ -395,29 +401,22 @@ void queue_receive(void) {
     uint8_t dest = DESTINATION(thisPacket);
     uint8_t src  = SENDER(thisPacket);
     uint8_t id   = ID(thisPacket);
-    Serial.print("in do-while");
+    Serial.print("CLEARING ");
+    delay(300);
+    display_clear();
     if (dest == config_get_id() 
 	&& TYPE(thisPacket) == NORMAL)
       {
 	foundPacket = true;
 	// LED TURN ON
 	// Put an ACK into the queue for it.
-	PACKET * ack = (PACKET*)malloc(sizeof(PACKET));
-	if (ack == NULL) {
-	  Serial.print("OUT OF MEMORY");
-          return;
-        }
-	packet_set_header(ack, config_get_id(), src, ACK);
-	ack->id = id;
-	ack->msglen = 0;
-        // TODO: Put into queue.
-        
         void * data;
+        packet_print(thisPacket);
         dlist_remove(&pktList, thisElement, &data);
-        packet_print((PACKET*) data);
         free(data);
       }
-    else if (TYPE(thisPacket) == NORMAL) {
+/*
+else if (TYPE(thisPacket) == NORMAL) {
       // Packet not for us, search for an ACK with the same DEST and
       // ID.
       bool foundAck = false;
@@ -439,7 +438,7 @@ void queue_receive(void) {
       if (foundAck == true)
 	dlist_remove(&pktList, thisElement, NULL);
     } // End else if(TYPE...
-    
+*/    
     thisElement = dlist_next(thisElement);
   }while(thisElement != NULL); // End while
 

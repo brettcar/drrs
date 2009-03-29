@@ -25,11 +25,11 @@ void config_set_id(void)
   
 }
 
-// TODO: Fix this. BOARD_0 is the recvr, if not board 0 then its the txmitter.
-#define BOARD_0
+// TODO: Fix this. RECEIVER is the recvr, then its the txmitter.
+ #define RECEIVER
 uint8_t config_get_id(void)
 {
-  #ifdef BOARD_0
+  #ifdef RECEIVER
     return 0;
   #else
     return 1;

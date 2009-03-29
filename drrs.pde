@@ -30,7 +30,6 @@ void setup (void)
   clr = SPDR;
   delay (10);
   /* End Configure SPI */
-  Serial.print("HALP");
   delay(5); 
   txvr_setup ();
   delay(100);
@@ -45,30 +44,18 @@ void setup (void)
   #ifdef UNIT_TEST
   //test_ram_write();
   #endif
-    list_test_insert();
-  list_test_send();
+
+  if (config_get_id() == 1)
+   list_test_send();
 }
 
 void loop(void)
 {
-  uint8_t reg = read_txvr_reg(0x07); // STATUS register
-  reg &= 0x0E;
-  Serial.print("STATUS(");
-  Serial.print(reg,HEX);
-  Serial.print(")");
-
-
-  //queue_receive();
-  delay(1000);
+  display_clear();
+  queue_receive();
   if (config_get_id() == 1)
     queue_transmit();
- 
-  #ifdef UNIT_TEST
-  //test_ram_read();
-  //queue_receive();  
-  delay(1000);
-  #endif  
-
+  
   #ifdef KEYPAD_DEBUG
   //Do nothing, wait for keypad interrupt    
     keypad_service();
@@ -79,11 +66,11 @@ void loop(void)
   // operating when the transceiver is in RX mode.
   // This implies that CE is high and PRIM_RX is set. 
   // Only the final transmit payload function should fuss with CE/PRIM_RX.
-  if (txvr_rx_if) { 
+ // if (txvr_rx_if) { 
     // Packet is waiting for us... there could be more than 1 waiting.
       txvr_receive_payload();
       txvr_rx_if = false;
-  }
+ // }
 }
 
 char spi_transfer (volatile char data)
