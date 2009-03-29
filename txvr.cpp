@@ -387,36 +387,39 @@ void queue_receive(void) {
   register bool foundPacket = false;
   if (dlist_size(&pktList) == 0)
     return;
-  else
-  {
+
+
    Serial.print("LSZ-");
    Serial.print(dlist_size(&pktList), HEX);
-  }
-  
-  DListElmt * thisElement;
-  thisElement = dlist_head(&pktList);
-  
+   DListElmt * thisElement;
+   thisElement = dlist_head(&pktList); 
+
    do{
     PACKET * thisPacket = (PACKET*)dlist_data(thisElement);
     uint8_t dest = DESTINATION(thisPacket);
     uint8_t src  = SENDER(thisPacket);
     uint8_t id   = ID(thisPacket);
+    bool removePacket = false;
     Serial.print("CLEARING ");
     delay(300);
     display_clear();
     if (dest == config_get_id() 
 	&& TYPE(thisPacket) == NORMAL)
-      {
+    {
 	foundPacket = true;
 	// LED TURN ON
 	// Put an ACK into the queue for it.
-        void * data;
+        PACKET ack;
+        packet_set_header(&ack, config_get_id(), src, ACK);
+        ack.id = id;
+        ack.msglen = 0;      
+        txvr_transmit_payload(&ack);
+
         packet_print(thisPacket);
-        dlist_remove(&pktList, thisElement, &data);
-        free(data);
-      }
+        removePacket = true;
+    }
 /*
-else if (TYPE(thisPacket) == NORMAL) {
+    else if (TYPE(thisPacket) == NORMAL) {
       // Packet not for us, search for an ACK with the same DEST and
       // ID.
       bool foundAck = false;
@@ -438,9 +441,16 @@ else if (TYPE(thisPacket) == NORMAL) {
       if (foundAck == true)
 	dlist_remove(&pktList, thisElement, NULL);
     } // End else if(TYPE...
-*/    
+  */  
+    DListElmt * tmpElement = thisElement;
     thisElement = dlist_next(thisElement);
-  }while(thisElement != NULL); // End while
+    void * data;
+    if (removePacket) {
+      dlist_remove(&pktList, tmpElement, &data);
+      free(data);
+    }
+ 
+   }while(thisElement != NULL); // End while
 
   if (foundPacket == false)
     ; // Turn LED OFF.

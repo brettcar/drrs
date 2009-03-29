@@ -53,8 +53,7 @@ void loop(void)
 {
   display_clear();
   queue_receive();
-  if (config_get_id() == 1)
-    queue_transmit();
+  queue_transmit();
   
   #ifdef KEYPAD_DEBUG
   //Do nothing, wait for keypad interrupt    

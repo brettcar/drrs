@@ -26,7 +26,7 @@ void config_set_id(void)
 }
 
 // TODO: Fix this. RECEIVER is the recvr, then its the txmitter.
- #define RECEIVER
+#define RECEIVER
 uint8_t config_get_id(void)
 {
   #ifdef RECEIVER
