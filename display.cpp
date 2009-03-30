@@ -3,7 +3,7 @@
 #import "display.h"
 #import "config.h"
 
-MENU_ENTRY entries[4];
+MENU_ENTRY entries[3]; // TODO: Set back to 4?
 int currEntry;  // Used to index through MainMenu, Inbox, Config, etc.
 int currChoice; // Used to index through items in above menus (mgs, config options etc.)
 boolean inNewMsg;

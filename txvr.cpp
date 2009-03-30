@@ -13,7 +13,15 @@ extern char spi_transfer (volatile char data);
 
 volatile bool txvr_rx_if = false;
 volatile bool txvr_tx_if = false;
-
+void txvr_list_print(void) {
+  // TODO: Remove this function.
+   Serial.print("--> ");
+  Serial.print(dlist_size(&ackList), HEX);
+  Serial.print(" ");
+  Serial.print(dlist_size(&inboxList), HEX);
+  Serial.print(" ");
+  Serial.println(dlist_size(&pktList), HEX);
+};
 const char TXVR_NOP_CMD = 0xFF;  
 
 void txvr_setup_ports (void)
@@ -213,7 +221,7 @@ static inline void packet_set_header(PACKET * pkt, uint8_t sender, uint8_t recei
 static void txvr_handle_ack(PACKET * newPkt)
 {
     DListElmt * thisElement;
-    thisElement = dlist_head(&ackList);
+    thisElement = dlist_head(&pktList);
     do
     {
       PACKET * thisPacket = (PACKET*) dlist_data(thisElement);
@@ -232,10 +240,10 @@ static void txvr_handle_ack(PACKET * newPkt)
       }
       thisElement = dlist_next(thisElement);
     } while(thisElement != NULL);      
-    // If this ack packet is NOT for us, transmit it 
+    // If this ack packet is NOT for us put it in the ackList
     if(DESTINATION(newPkt) != config_get_id())
     {
-      txvr_transmit_payload(newPkt);
+      dlist_ins_next(&ackList, dlist_head(&ackList), newPkt);     
     }
     free(newPkt);   
 }
@@ -281,17 +289,19 @@ uint8_t txvr_receive_payload (void)
     // Check to see if we already have this message in our inbox. If we do, do not put it there, just re-send ACK.
     DListElmt * thisElement;
     thisElement = dlist_head(&inboxList);    
-    do
-    {
-      PACKET * thisPacket = (PACKET*) dlist_data(thisElement);
-      if(ID(thisPacket) == ID(newPkt))
-      {
-        packet_duped = true;
-        break;
-      } 
-      thisElement = dlist_next(thisElement);
-    }while(thisElement != NULL);      
     
+    if (thisElement != NULL) {
+      do
+      {
+        PACKET * thisPacket = (PACKET*) dlist_data(thisElement);
+        if(ID(thisPacket) == ID(newPkt))
+        {
+          packet_duped = true;
+          break;
+        } 
+        thisElement = dlist_next(thisElement);
+      }while(thisElement != NULL);      
+    }
     // If this isn't a duplicate packet, then put it in our inbox list.
     if(packet_duped == false)
     {
@@ -302,19 +312,24 @@ uint8_t txvr_receive_payload (void)
     
     // We found a message intended for us.
     // Send out an ack. 
-    PACKET ack;
-    packet_set_header(&ack, config_get_id(), SENDER(newPkt), ACK);
-    ack.id = ID(newPkt);
-    ack.msglen = 0;      
-    txvr_transmit_payload(&ack);    
-    Serial.print("SENT ACK");
-    return reg;
+    PACKET  * ack = (PACKET*)malloc(sizeof(PACKET));
+    if (ack == NULL) {
+      Serial.print("OOMem"); 
+    } else {
+      packet_set_header(ack, config_get_id(), SENDER(newPkt), ACK);
+      ack->id = ID(newPkt);
+      ack->msglen = 0;      
+      dlist_ins_next(&ackList, dlist_head(&ackList), ack);
+      Serial.print("QUEUED ACK");
+    }
   } 
   else { // for any other kind of packet, ACK or NORMAL, put it in the list
     Serial.print("Other-pkt ");
     packet_print(newPkt);
     dlist_ins_next(&pktList, dlist_head(&pktList), newPkt);  
   }
+  free(newPkt);
+  return reg;
 }
 
 char txvr_transmit_payload (const PACKET * packet)
@@ -323,17 +338,12 @@ char txvr_transmit_payload (const PACKET * packet)
   digitalWrite(txvr_ce_port, LOW);
   digitalWrite(txvr_csn_port, LOW);  
   spi_transfer(0xA0);
-  Serial.print(packet->msgheader);
   spi_transfer(packet->msgheader);
-  Serial.print(packet->id);
   spi_transfer(packet->id);
-  Serial.print(packet->msglen);
   spi_transfer(packet->msglen);
   for(int i = 0; i < 29; i++) {
     spi_transfer(packet->msgpayload[i]);
-    Serial.print(packet->msgpayload[i]);
-  }
-  
+  }  
   digitalWrite(txvr_csn_port, HIGH);
   txvr_set_prim_rx(false);
   digitalWrite(txvr_ce_port, HIGH);
@@ -503,4 +513,17 @@ void queue_transmit(void)
       thisElement = dlist_next(thisElement);
     }
   }while(thisElement != NULL);      
+}
+
+void process_ack_queue(void) {
+  if (dlist_size(&ackList) == 0)
+    return;
+  DListElmt * thisAck = dlist_head(&ackList);
+  do {
+    txvr_transmit_payload((PACKET*)dlist_data(thisAck));
+    Serial.print("SENT-AN-ACK ");
+    thisAck = dlist_next(thisAck);
+  } while (thisAck != NULL);
+  dlist_destroy(&ackList);
+  dlist_init(&ackList, free);
 }

@@ -41,3 +41,5 @@ void queue_transmit(void);
 void list_test_insert(void);
 void list_test_send(void);
 void packet_print(PACKET * pkt);
+void process_ack_queue(void);
+void txvr_list_print(void);

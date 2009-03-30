@@ -52,9 +52,12 @@ void setup (void)
 void loop(void)
 {
   display_clear();
+  process_ack_queue();
   txvr_receive_payload();  
   queue_transmit();
   delay(6000);
+  txvr_list_print();
+
   #ifdef KEYPAD_DEBUG
   //Do nothing, wait for keypad interrupt    
     keypad_service();
