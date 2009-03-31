@@ -38,6 +38,7 @@ void txvr_setup_ports (void)
 
 void txvr_isr()
 {
+  Serial.print("?");
   volatile char value = read_txvr_reg(7);
   // Check if RX_DR bit is set
   if (0b01000000 & value) {
@@ -52,6 +53,7 @@ void txvr_setup (void)
 {
   dlist_init(&pktList, free);
   dlist_init(&inboxList, free);  
+  dlist_init(&ackList, free);
   txvr_set_pwr_up ();
   delay (100);
   txvr_set_rf_setup_reg ();
@@ -244,8 +246,9 @@ static void txvr_handle_ack(PACKET * newPkt)
     if(DESTINATION(newPkt) != config_get_id())
     {
       dlist_ins_next(&ackList, dlist_head(&ackList), newPkt);     
-    }
-    free(newPkt);   
+    } else {
+      free(newPkt); 
+    }  
 }
 
 uint8_t txvr_receive_payload (void)
@@ -274,17 +277,23 @@ uint8_t txvr_receive_payload (void)
   }
   digitalWrite(txvr_csn_port, HIGH);
   
-  // Check if this received packet is an ack intended for us. 
-  // If it is, then deal with it and do not add it to the linked list
-  if(TYPE(newPkt) == ACK)
+  // If this is a packet sent to US by US... Toss it out!
+  if(SENDER(newPkt) == config_get_id())
   {
+    free(newPkt);
+    Serial.print("ByUs ");
+  }  
+  else if(TYPE(newPkt) == ACK)
+  {
+   // Check if this received packet is an ack intended for us. 
+   // If it is, then deal with it and do not add it to the linked list
     Serial.print("Call-handle-ack ");
     txvr_handle_ack(newPkt);
   }
-  // Else if this is a normal packet intended for us, put it in the inboxList
-  // and send out an ack msg.
   else if(TYPE(newPkt) == NORMAL && DESTINATION(newPkt) == config_get_id())
   {
+    // Else if this is a normal packet intended for us, put it in the inboxList
+    // and send out an ack msg.
     boolean packet_duped = false;
     // Check to see if we already have this message in our inbox. If we do, do not put it there, just re-send ACK.
     DListElmt * thisElement;
@@ -301,15 +310,7 @@ uint8_t txvr_receive_payload (void)
         } 
         thisElement = dlist_next(thisElement);
       }while(thisElement != NULL);      
-    }
-    // If this isn't a duplicate packet, then put it in our inbox list.
-    if(packet_duped == false)
-    {
-      Serial.print("Put-in-inbox ");
-      dlist_ins_next(&inboxList, dlist_head(&inboxList), newPkt);
-      packet_print(newPkt);
-    }
-    
+    }    
     // We found a message intended for us.
     // Send out an ack. 
     PACKET  * ack = (PACKET*)malloc(sizeof(PACKET));
@@ -322,13 +323,48 @@ uint8_t txvr_receive_payload (void)
       dlist_ins_next(&ackList, dlist_head(&ackList), ack);
       Serial.print("QUEUED ACK");
     }
+    
+    // If this isn't a duplicate packet, then put it in our inbox list.
+    if(packet_duped == false)
+    {
+      Serial.print("Put-in-inbox ");
+      dlist_ins_next(&inboxList, dlist_head(&inboxList), newPkt);
+      packet_print(newPkt);
+    }
+    else {
+//      free(newPkt);
+    }
   } 
   else { // for any other kind of packet, ACK or NORMAL, put it in the list
     Serial.print("Other-pkt ");
     packet_print(newPkt);
-    dlist_ins_next(&pktList, dlist_head(&pktList), newPkt);  
+    
+    boolean packet_duped = false;
+    // Check to see if we already have this message in our inbox. If we do, do not put it there, just re-send ACK.
+    DListElmt * thisElement;
+    thisElement = dlist_head(&pktList);    
+    
+    if (thisElement != NULL) {
+      do
+      {
+        PACKET * thisPacket = (PACKET*) dlist_data(thisElement);
+        if(ID(thisPacket) == ID(newPkt))
+        {
+          packet_duped = true;
+          break;
+        } 
+        thisElement = dlist_next(thisElement);
+      }while(thisElement != NULL);      
+    }
+    
+    if(packet_duped == false) {
+      dlist_ins_next(&pktList, dlist_head(&pktList), newPkt);  
+      Serial.print("put in txList");
+    }
+    else {
+     // free(newPkt);
+    }
   }
-  free(newPkt);
   return reg;
 }
 

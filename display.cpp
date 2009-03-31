@@ -14,9 +14,9 @@ void display_clear(void) {
 #ifdef CLEAR_FAST
   Serial.print("                                "); // 32 spaces
 #else
- Serial.println(" ");
- //Serial.print (0xFE, BYTE); 
- //Serial.print (0x01, BYTE);
+ //Serial.println(" ");
+ Serial.print (0xFE, BYTE); 
+ Serial.print (0x01, BYTE);
 #endif
 }
 

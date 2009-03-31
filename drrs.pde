@@ -34,12 +34,12 @@ void setup (void)
   txvr_setup ();
   delay(100);
   display_setup_lcd ();
-  keypad_setup();
+//  keypad_setup();
   display_setup();
   config_setup();
   Serial.print ("Setup ack. ");
   delay(500);
-  display_mainmenu();
+//  display_mainmenu();
   keypad_if = false;
   #ifdef UNIT_TEST
   //test_ram_write();
@@ -53,17 +53,10 @@ void loop(void)
 {
   display_clear();
   process_ack_queue();
-  txvr_receive_payload();  
   queue_transmit();
-  delay(6000);
   txvr_list_print();
 
-  #ifdef KEYPAD_DEBUG
-  //Do nothing, wait for keypad interrupt    
-    keypad_service();
-  #endif
-
-  txvr_receive_payload();
+  delay(random(100, 300));
 }
 
 char spi_transfer (volatile char data)
