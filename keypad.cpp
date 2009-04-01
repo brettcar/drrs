@@ -9,10 +9,7 @@ extern int currEntry;
 extern boolean inNewMsg;
 extern MENU_ENTRY entries[10];
 
-
-extern int keypad_if;
-
-void keypad_isr(void);
+volatile boolean keypad_if;
 
 const int keypad_D0 = 5;
 const int keypad_D1 = 6;
@@ -22,13 +19,19 @@ const int keypad_D3 = 8;
 const int keypad_irq_port = 3; // Keypad interrupt pin d3
 const int keypad_uart_port = 0;
 
-int prevKey = -1;
-int currKey = -1;
+int8_t prevKey = -1;
+int8_t currKey = -1;
+
+void keypad_isr(void);
 
 void keypad_setup_ports(void)
 {
   pinMode(keypad_uart_port, INPUT);
   pinMode(keypad_irq_port, INPUT);
+  pinMode(keypad_D0, INPUT);
+  pinMode(keypad_D1, INPUT);
+  pinMode(keypad_D2, INPUT);
+  pinMode(keypad_D3, INPUT);
 }
 
 // Attach an interrupt handler for pin d3 
@@ -37,15 +40,12 @@ void keypad_setup(void)
 {
   //d5 -> LSB ... d8 -> MSB
   Serial.print("Setup Keypad");
-  pinMode(keypad_D0, INPUT);
-  pinMode(keypad_D1, INPUT);
-  pinMode(keypad_D2, INPUT);
-  pinMode(keypad_D3, INPUT);
+  keypad_if = false;
   attachInterrupt(1, keypad_isr, FALLING);
-  Serial.print("Setup Complete");
+  Serial.print("Setup Keypad Complete");
   display_clear();  
 }
-extern uint8_t g_configid;
+
 void keypad_isr()
 {
   keypad_if = true;  

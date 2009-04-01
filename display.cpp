@@ -3,7 +3,7 @@
 #import "display.h"
 #import "config.h"
 
-MENU_ENTRY entries[3]; // TODO: Set back to 4?
+MENU_ENTRY entries[4]; 
 int currEntry;  // Used to index through MainMenu, Inbox, Config, etc.
 int currChoice; // Used to index through items in above menus (mgs, config options etc.)
 boolean inNewMsg;
@@ -155,7 +155,7 @@ void display_config_setup(void)
 
 void display_config(void)
 {
-  // To do
+  // TODO
   currEntry = 3;
   currChoice = 0;
   display_draw_entry(entries[currEntry]);
@@ -186,12 +186,12 @@ void display_inbox(void)
 
 void display_status(void)
 {
-  // To do
+  // TODO
 }
 
 void display_newmsg(void)
 {
-  // To do
+  // TODO
   currChoice = 0;
   currEntry = 2;
   inNewMsg = true;
@@ -202,6 +202,5 @@ void display_newmsg(void)
    just call the callback! */
 void display_process(MENU_ENTRY entry, int choice)
 {
-  //  assert(choice < 2 && choice >= 0);
   entry.choices[choice].callback();
 }

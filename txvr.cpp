@@ -5,40 +5,49 @@
 #import "list.h"
 #import "display.h"
 
-static DList pktList;  // List used to keep track of packets we need to transmit
-static DList inboxList;  // List used to store packets intended for us.
-static DList ackList;
+static DList pktList;  /* List used to keep track of normal packets we
+			  need to transmit */
+static DList inboxList; /* List used to store packets intended for us
+			   as the final destination. */
+static DList ackList; /* List used to queue ACKs for trannsmission. */
 
-extern char spi_transfer (volatile char data);
+const char TXVR_NOP_CMD = 0xFF;  
 
 volatile bool txvr_rx_if = false;
 volatile bool txvr_tx_if = false;
+
+char spi_transfer (volatile char data)
+{
+  SPDR = data;
+  // Start the transmission
+  while (!(SPSR & (1 << SPIF)));     // Wait the end of the transmission
+  return SPDR;   // Return the received byte
+}
+
 void txvr_list_print(void) {
   // TODO: Remove this function.
-   Serial.print("--> ");
+  Serial.print("--> ");
   Serial.print(dlist_size(&ackList), HEX);
   Serial.print(" ");
   Serial.print(dlist_size(&inboxList), HEX);
   Serial.print(" ");
   Serial.println(dlist_size(&pktList), HEX);
-};
-const char TXVR_NOP_CMD = 0xFF;  
+}
 
 void txvr_setup_ports (void)
 {
   pinMode (txvr_csn_port, OUTPUT);
+  digitalWrite (txvr_csn_port, HIGH);
   pinMode (txvr_sck_port, OUTPUT);
   pinMode (txvr_mosi_port, OUTPUT);
   pinMode (txvr_miso_port, INPUT);
   pinMode (txvr_ce_port, OUTPUT);
   digitalWrite(txvr_ce_port, LOW);
   pinMode (txvr_irq_port, INPUT);
-  digitalWrite (txvr_csn_port, HIGH);
 }
 
 void txvr_isr()
 {
-  Serial.print("?");
   volatile char value = read_txvr_reg(7);
   // Check if RX_DR bit is set
   if (0b01000000 & value) {
@@ -46,7 +55,8 @@ void txvr_isr()
   }
   value |= 0b1110000;  
   write_txvr_reg(7, value);
-  while(!(txvr_receive_payload() & 0x0E));
+  while(!(txvr_receive_payload() & 0x0E)); /* Receive payloads until
+					      the FIFO is empty. */
 }
 
 void txvr_setup (void)
@@ -54,96 +64,78 @@ void txvr_setup (void)
   dlist_init(&pktList, free);
   dlist_init(&inboxList, free);  
   dlist_init(&ackList, free);
+  
   txvr_set_pwr_up ();
   delay (100);
-  txvr_set_rf_setup_reg ();
+  
+  // Write the RF_SETUP reg to use lowest power and lowest data rate.
+  write_txvr_reg(0x06, 0x01);
+
+  // Set frequency to 2400 MHz
   txvr_set_frequency (0);
 
-  //Set radio address width in SETUP_AW
-  digitalWrite (txvr_csn_port, LOW);
-  spi_transfer (0x23);
-  spi_transfer (0x01);
-  digitalWrite (txvr_csn_port, HIGH);
+  // Set radio address width in SETUP_AW
+  write_txvr_reg(0x03, 0x01);
 
   // Disable auto retransmit
-  digitalWrite (txvr_csn_port, LOW);
-  spi_transfer (0x24);
-  spi_transfer (0x00);
-  digitalWrite (txvr_csn_port, HIGH);
+  write_txvr_reg(0x04, 0x00);
 
-  //Disable auto ack
-  digitalWrite (txvr_csn_port, LOW);
-  spi_transfer (0x21);
-  spi_transfer (0x00);
-  digitalWrite (txvr_csn_port, HIGH);
+  // Disable auto ack
+  write_txvr_reg(0x01, 0x00);
 
-  //Set our unique address
-  unsigned char addr[] = { 0xDA, 0xBE, 0xEF };
+  // All radios share Shockburst address of addr for RX
+  const unsigned char addr[] = { 0xDA, 0xBE, 0xEF };
   txvr_set_rx_addr_p0 (addr);
+
+  // Set the FIFO pipe width for pipe 0.
   txvr_set_rx_pw_p0 (32);
 
+  // And choose to TX as the shared address as well.
   txvr_set_tx_addr (addr);
 
-  //Set pipe 0 as enabled for receive
-  digitalWrite (txvr_csn_port, LOW);
-  spi_transfer (0x22);
-  spi_transfer (0x01);
-  digitalWrite (txvr_csn_port, HIGH);
+  // Set pipe 0 as enabled for receive
+  write_txvr_reg(0x02, 0x01);
 
-  //Attach interrupt to dataRecIF
+  // Attach interrupt to monitor for received packets
   attachInterrupt(0, txvr_isr, LOW);
   
-  txvr_set_prim_rx(true); // Enable RX mode
+  // Enable RX mode
+  txvr_set_prim_rx(true); 
   digitalWrite(txvr_ce_port, HIGH);
 }
 
-//Set the static payload length for pipe 0
-// length is specified as 1 for 1 byte, 2 for
-// 2 bytes,..., 31 for 31 bytes, up to 32.
+// Set the static payload length for pipe 0 length is specified as 1
+// for 1 byte, 2 for 2 bytes,..., 31 for 31 bytes, up to 32.
 void txvr_set_rx_pw_p0 (unsigned char length)
 {
-  digitalWrite (txvr_csn_port, LOW);
-  spi_transfer (0x31);
-  // Write to rx_pw_p0 register
-  spi_transfer (length);
-  digitalWrite (txvr_csn_port, HIGH);
+  write_txvr_reg(0x11, length);
 }
 
-//addr must be a pointer to 3 - byte memory, MSByte first
-void txvr_set_rx_addr_p0 (unsigned char *addr)
+// Addr must be a pointer to 3 - byte memory, MSByte first
+void txvr_set_rx_addr_p0 (const unsigned char *addr)
 {
   digitalWrite (txvr_csn_port, LOW);
   spi_transfer (0x2A);
-  //Write to rx_addr_p0 register
+  // Write to rx_addr_p0 register
   spi_transfer (addr[2]);
   spi_transfer (addr[1]);
   spi_transfer (addr[0]);
   digitalWrite (txvr_csn_port, HIGH);
 }
 
-//addr must be a pointer to 3 - byte memory, MSByte first
-void txvr_set_tx_addr (unsigned char *addr)
+// Addr must be a pointer to 3 - byte memory, MSByte first
+void txvr_set_tx_addr (const unsigned char *addr)
 {
   digitalWrite (txvr_csn_port, LOW);
   spi_transfer (0x30);
-  //Write to tx_addr register
+  // Write to tx_addr register
   spi_transfer (addr[2]);
   spi_transfer (addr[1]);
   spi_transfer (addr[0]);
   digitalWrite (txvr_csn_port, HIGH);
 }
 
-void txvr_set_rf_setup_reg (void)
-{
-  digitalWrite (txvr_csn_port, LOW);
-  spi_transfer (0x26);
-  //write to RF_SETUP
-  spi_transfer (0x01);
-  //data to write
-  digitalWrite (txvr_csn_port, HIGH);
-}
-
-//Carrier is set to 2400 MHz + offset[MHz]
+// Carrier is set to 2400 MHz + offset[MHz]
 void txvr_set_frequency (int offset)
 {
   unsigned char data = (offset & 0b01111111);
@@ -154,58 +146,52 @@ void txvr_set_frequency (int offset)
 }
 
 
-//enable PRIM_RX
+// Enable or disable PRIM_RX flag in the CONFI register
 char txvr_set_prim_rx (bool enable)
 {
-  // read CONFIG register
+  // Read CONFIG register
   char value = read_txvr_reg (0x00);
 
-  if (enable) {
+  /* Set the PRIM_RX bit to 1 if enable is true and to 0 if enable is
+     false */
+  if (enable == true) {
     value |= 0b00000001;
   } else {
     value &= 0b11111110;
   }
   
-  //set the PRIM_RX bit to 1 if enable is true
-  // and to 0 if enable is false
   write_txvr_reg(0x00, value);
 }
 
 char txvr_set_pwr_up (void)
 {
-  digitalWrite (txvr_csn_port, LOW);
-  spi_transfer (0x00);
-  //read the CONFIG register
-  char value = spi_transfer (TXVR_NOP_CMD);
-  //save the value in the CONFIG register
-  digitalWrite (txvr_csn_port, HIGH);
+  // Read the CONFIG register
+  char value = read_txvr_reg(0x00);
 
-  //set the PWR_UP bit and mask off unneeded interrupts
+  // Set the PWR_UP bit and mask off unneeded interrupts
   value |= 0b00110010;
 
-  digitalWrite (txvr_csn_port, LOW);
-  spi_transfer (0b00100000);
-  spi_transfer (value);
-  digitalWrite (txvr_csn_port, HIGH);
+  // Write back to CONFIG  
+  write_txvr_reg(0x00, value);
 }
 
-static inline uint8_t DESTINATION(PACKET * bpkt) {
+static inline uint8_t DESTINATION(const PACKET * bpkt) {
   uint8_t tmp = bpkt->msgheader & 0xE0;
   tmp >>= 5;
   return tmp;
 }
 
-static inline uint8_t SENDER(PACKET * apkt) {
+static inline uint8_t SENDER(const PACKET * apkt) {
   uint8_t tmp = apkt->msgheader & 0x1C;
   tmp >>= 2;
   return tmp;
 }
 
-static inline uint8_t TYPE(PACKET * apkt) {
+static inline uint8_t TYPE(const PACKET * apkt) {
   return apkt->msgheader & 0x03;
 }
 
-static inline uint8_t ID(PACKET * apkt) {
+static inline uint8_t ID(const PACKET * apkt) {
   return apkt->id;
 }
 
@@ -216,10 +202,11 @@ static inline void packet_set_header(PACKET * pkt, uint8_t sender, uint8_t recei
   pkt->msgheader |= (receiver & 0x7) << 5;        
 }
 
-// Assumption: newPkt is an ack
-// Find if there's a packet in our pktList that matches this ACK (if there is, delete it).
-// If the ack packet is for us, we're done
-// If the ack packet is not for us, transmit it (once).
+/* Assumption: newPkt is an ack.  Find if there's a packet in our
+ * pktList that matches this ACK (if there is, delete it).  If the ack
+ * packet is for us, we're done.  If the ack packet is not for us,
+ * transmit it (once).
+ */
 static void txvr_handle_ack(PACKET * newPkt)
 {
     DListElmt * thisElement;
@@ -234,7 +221,8 @@ static void txvr_handle_ack(PACKET * newPkt)
         && ID(thisPacket) == ID(newPkt))
       {
         void * data;   
-       // No longer need to retransmit thisPacket so remove it from the list 
+	// No longer need to retransmit thisPacket; so remove it from
+	// the list
         dlist_remove(&pktList, thisElement, &data);
         free(data);
         // Assumption: only one of thisPacket packets exists
@@ -260,14 +248,13 @@ uint8_t txvr_receive_payload (void)
   }
   
   PACKET * newPkt = (PACKET*) malloc(32);
-  if (newPkt == NULL)
-  {
+  if (newPkt == NULL) {
     Serial.print("Out of Memory");
     return reg;
   }
-
+  
   uint8_t * ptr = (uint8_t*) newPkt;
-
+  
   // Get packet bytes over SPI interface
   digitalWrite(txvr_csn_port, LOW);
   spi_transfer(0x61); // R_RX_PAYLOAD command
@@ -278,20 +265,17 @@ uint8_t txvr_receive_payload (void)
   digitalWrite(txvr_csn_port, HIGH);
   
   // If this is a packet sent to US by US... Toss it out!
-  if(SENDER(newPkt) == config_get_id())
-  {
+  if(SENDER(newPkt) == config_get_id()) {
     free(newPkt);
     Serial.print("ByUs ");
   }  
-  else if(TYPE(newPkt) == ACK)
-  {
-   // Check if this received packet is an ack intended for us. 
-   // If it is, then deal with it and do not add it to the linked list
+  else if(TYPE(newPkt) == ACK) {
+    // Check if this received packet is an ack intended for us. 
+    // If it is, then deal with it and do not add it to the linked list
     Serial.print("Call-handle-ack ");
     txvr_handle_ack(newPkt);
   }
-  else if(TYPE(newPkt) == NORMAL && DESTINATION(newPkt) == config_get_id())
-  {
+  else if(TYPE(newPkt) == NORMAL && DESTINATION(newPkt) == config_get_id()) {
     // Else if this is a normal packet intended for us, put it in the inboxList
     // and send out an ack msg.
     boolean packet_duped = false;
@@ -303,13 +287,12 @@ uint8_t txvr_receive_payload (void)
       do
       {
         PACKET * thisPacket = (PACKET*) dlist_data(thisElement);
-        if(ID(thisPacket) == ID(newPkt))
-        {
+        if(ID(thisPacket) == ID(newPkt)) {
           packet_duped = true;
           break;
         } 
         thisElement = dlist_next(thisElement);
-      }while(thisElement != NULL);      
+      } while(thisElement != NULL);      
     }    
     // We found a message intended for us.
     // Send out an ack. 
@@ -324,45 +307,43 @@ uint8_t txvr_receive_payload (void)
       Serial.print("QUEUED ACK");
     }
     
-    // If this isn't a duplicate packet, then put it in our inbox list.
-    if(packet_duped == false)
-    {
+    // If this isn't a duplicate packet, then put it inbox list.
+    if(packet_duped == false) {
       Serial.print("Put-in-inbox ");
       dlist_ins_next(&inboxList, dlist_head(&inboxList), newPkt);
       packet_print(newPkt);
+    } else {
+      // TODO
+      // free(newPkt);
     }
-    else {
-//      free(newPkt);
-    }
-  } 
-  else { // for any other kind of packet, ACK or NORMAL, put it in the list
+  } else {
+    // for any other kind of packet, ACK or NORMAL, put it in the list
     Serial.print("Other-pkt ");
     packet_print(newPkt);
     
     boolean packet_duped = false;
-    // Check to see if we already have this message in our inbox. If we do, do not put it there, just re-send ACK.
+    // Check to see if we already have this message in our inbox. If
+    // we do, do not put it there, just re-send ACK.
     DListElmt * thisElement;
     thisElement = dlist_head(&pktList);    
     
     if (thisElement != NULL) {
-      do
-      {
-        PACKET * thisPacket = (PACKET*) dlist_data(thisElement);
-        if(ID(thisPacket) == ID(newPkt))
-        {
+      do {
+	PACKET * thisPacket = (PACKET*) dlist_data(thisElement);
+	if(ID(thisPacket) == ID(newPkt)) {
           packet_duped = true;
           break;
         } 
         thisElement = dlist_next(thisElement);
-      }while(thisElement != NULL);      
+      } while(thisElement != NULL);      
     }
     
     if(packet_duped == false) {
       dlist_ins_next(&pktList, dlist_head(&pktList), newPkt);  
       Serial.print("put in txList");
-    }
-    else {
-     // free(newPkt);
+    } else {
+      // TODO
+      // free(newPkt);
     }
   }
   return reg;
@@ -411,11 +392,11 @@ char read_txvr_reg(char reg)
 }
 
 
-void packet_print(PACKET * pkt) {
+void packet_print(const PACKET * pkt) {
   Serial.print("[PKT: Dst(");
   Serial.print(DESTINATION(pkt), HEX);
   Serial.print(") Src(");
-//  delay(1000);
+  //  delay(1000);
   Serial.print(SENDER(pkt), HEX);
   Serial.print(") Type(");
   switch(TYPE(pkt)) {
@@ -433,14 +414,14 @@ void packet_print(PACKET * pkt) {
       break;
   }
   Serial.print(") Id(");
-//  delay(1000);
+  //  delay(1000);
   Serial.print(ID(pkt), HEX);
   Serial.print(") Msglen(");
   Serial.print(pkt->msglen, HEX);
   Serial.print(") Data: ");
   Serial.print(pkt->msgpayload[0]);
   Serial.print(" ");
-//  delay(1000);
+  //  delay(1000);
 }
 
 void list_test_send(void)
@@ -465,7 +446,7 @@ void list_test_send(void)
 void list_test_insert(void)
 {
   void * data; 
-  // Build backet, insert at head
+  // Build packet, insert at head
   PACKET * pkt = (PACKET*) malloc(sizeof(PACKET));
   memset(pkt, 1, sizeof(PACKET));
   dlist_ins_next(&pktList, dlist_head(&pktList), pkt);
@@ -478,9 +459,9 @@ void list_test_insert(void)
   // Now get a packet.
   DListElmt * elmt = NULL;
   elmt = dlist_head(&pktList);
-
+  
   if (elmt == NULL)
-   Serial.print("SHIT BROKE");
+    Serial.print("SHIT BROKE");
   else if (dlist_size(&pktList) != 2)
     Serial.print("FUBAR");
   
@@ -490,7 +471,7 @@ void list_test_insert(void)
     Serial.print("error");
   if (dlist_data(dlist_head(&pktList)) != pkt)
     Serial.print("wtf");
-    
+  
   Serial.print("itsallgood");
 }
 #endif
@@ -502,7 +483,8 @@ static boolean txvr_handle_tx_packet(PACKET * packet)
   uint8_t dest = DESTINATION(packet);
   switch(TYPE(packet))
   {
-    // If this is normal packet, transmit it and change its type to RESERVED_0
+    // If this is normal packet, transmit it and change its type to
+    // RESERVED_0
     case NORMAL:
       txvr_transmit_payload(packet);
       packet_set_header(packet, sender, dest, RESERVED_0);      
@@ -516,7 +498,7 @@ static boolean txvr_handle_tx_packet(PACKET * packet)
       packet_set_header(packet, sender, dest, NORMAL);      
       txvr_transmit_payload(packet);
       return true;
-    // Undefined case
+      // Undefined case
     default:
       return true;
   }
@@ -529,26 +511,24 @@ void queue_transmit(void)
   // These messages will be txed
   if(dlist_size(&pktList) == 0)
     return;
-    
+  
   DListElmt * thisElement;
   thisElement = dlist_head(&pktList);
   
-  do
-  {
+  do {
     PACKET * thisPacket = (PACKET*) dlist_data(thisElement);
-    if(txvr_handle_tx_packet(thisPacket) == true) // if handle_tx_packets is true, delete this element
-    { 
-       void * data;
-       DListElmt * tmp = thisElement;
-       thisElement = dlist_next(thisElement);
-       dlist_remove(&pktList, tmp, &data);
-       free(data);
-    }
-    else // else keep iterating like normal
-    {
+    if(txvr_handle_tx_packet(thisPacket) == true) {
+      // if handle_tx_packets is true, delete this element
+      void * data;
+      DListElmt * tmp = thisElement;
+      thisElement = dlist_next(thisElement);
+      dlist_remove(&pktList, tmp, &data);
+      free(data);
+    } else {
+      // else keep iterating like normal
       thisElement = dlist_next(thisElement);
     }
-  }while(thisElement != NULL);      
+  } while(thisElement != NULL);      
 }
 
 void process_ack_queue(void) {
@@ -560,6 +540,8 @@ void process_ack_queue(void) {
     Serial.print("SENT-AN-ACK ");
     thisAck = dlist_next(thisAck);
   } while (thisAck != NULL);
+
+  // Remove all elements from the list
   dlist_destroy(&ackList);
   dlist_init(&ackList, free);
 }
