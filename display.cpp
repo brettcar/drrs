@@ -39,6 +39,7 @@ void display_clear(void) {
 #endif
 }
 
+//TODO: This is getting called when we select new msg. It's printing out the main menu screen.
 void display_draw_entry(MENU_ENTRY entry)
 {
   display_clear();

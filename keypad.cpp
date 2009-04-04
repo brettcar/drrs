@@ -79,7 +79,9 @@ void keypad_service(void)
         memset(pktStart, 0, sizeof(PACKET));
         pktData = (uint8_t*)pktStart->msgpayload;
         initial = false;
-     } else {
+     }
+     if(true) 
+     {
        prevKey = currKey;
        currKey = keypad_val;
        // Remap the 0 (0/OPER) and the 4 (4/GHI) keys to button 0 (1) and button 3 (A)          
@@ -101,7 +103,7 @@ void keypad_service(void)
          pktStart->msglen++;
          prevKey = -1;
          currKey = -1;  
-     }
+      } // End if prevKey != -1
      else if(keypad_val == 0x03 || keypad_val == 0x07 || keypad_val == 0x0B || keypad_val == 0x0F)  // Submit mode
      {
         switch(keypad_val)
@@ -127,10 +129,9 @@ void keypad_service(void)
         display_back();
         inNewMsg = false;
         initial = true;
-    }        
-   }
-   
-   } 
+     } // end submit mode        
+    } // end if true
+   }  // End in new msg
    else if ((inSetID & 1) && keypad_val == 0x0F) 
    {
      config_next_id();
