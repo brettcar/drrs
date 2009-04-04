@@ -8,7 +8,26 @@ int currEntry;  // Used to index through MainMenu, Inbox, Config, etc.
 int currChoice; // Used to index through items in above menus (mgs, config options etc.)
 boolean inNewMsg;
 
-char recMessages[2][32];          
+char recMessages[2][32];
+static uint8_t realDisplay[32]; // PRIVATE
+uint8_t currDisplay[32]; // Code should only modify currDisplay. realDisplay is private.
+
+void display_update(void) {
+  for (uint8_t i = 0; i < 32; i++)
+  {
+    if (realDisplay[i] != currDisplay[i])
+    { 
+      memcpy(realDisplay, currDisplay, 32); 
+      display_clear();
+      for (register uint8_t i = 0; i < 32; i++)
+      {
+        
+        Serial.print(currDisplay[i]);
+      }
+      break;
+    }
+  }
+}
 
 void display_clear(void) {
 #ifdef CLEAR_FAST
@@ -24,15 +43,17 @@ void display_draw_entry(MENU_ENTRY entry)
 {
   display_clear();
   register int i;
-  for(i = 0; i < 16; i++) 
-    Serial.print(entry.message[i]);
-    
-  Serial.print("<");
-  for(i = 0; i < 6; i++)
-    Serial.print(entry.choices[currChoice].choice[i]);
-    
-  Serial.print("  ");
-  Serial.print("NEXT  ");
+  memset(currDisplay, ' ', 32);
+  uint8_t * ptr = currDisplay;
+  memcpy(ptr, entry.message, 16);
+  ptr += 16;
+  *ptr = '<';  
+  ptr++;
+  memcpy(ptr, entry.choices[currChoice].choice, 6);
+  ptr += 6;
+  
+  const char * trailer = "    NEXT>"; 
+  memcpy(ptr, trailer, strlen(trailer));
 }
 
 void display_setup_lcd(void)
@@ -41,6 +62,7 @@ void display_setup_lcd(void)
   // Clear LCD
   Serial.print (0xFE, BYTE); 
   Serial.print (0x01, BYTE);
+  memset(currDisplay, ' ', 32);
 }
 
 void display_setup(void) 
@@ -164,8 +186,8 @@ void display_config(void)
 void display_show_currMsg(void)
 {
    display_clear();
-   for(int i = 0; i < strlen(recMessages[currChoice]) ; i++)
-     Serial.print(recMessages[currChoice][i]);
+   memset(currDisplay, ' ', 32);
+   memcpy(currDisplay, recMessages[currChoice], strlen(recMessages[currChoice]));
 }
 
 void display_inbox(void)
@@ -195,7 +217,6 @@ void display_newmsg(void)
   currChoice = 0;
   currEntry = 2;
   inNewMsg = true;
-  display_clear();
 }
 
 /* Process a "choice" for the current MENU_ENTRY 'entry'. Basically,

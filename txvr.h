@@ -1,9 +1,9 @@
-
+#define PACKET_MAX_PAYLOAD  29
 typedef struct {
   uint8_t msgheader; 
   uint8_t id;
   uint8_t msglen; 
-  uint8_t msgpayload[29];
+  uint8_t msgpayload[PACKET_MAX_PAYLOAD];
 } PACKET;
 
 // Packet Type Codes
@@ -22,6 +22,9 @@ const int txvr_mosi_port = 11;
 const int txvr_miso_port = 12;
 const int txvr_sck_port = 13;
 
+extern uint8_t g_lastid;
+
+void packet_set_header(PACKET * pkt, uint8_t sender, uint8_t receiver, uint8_t type);
 char read_txvr_reg(char reg);
 uint8_t txvr_receive_payload (void);
 void txvr_set_frequency (int offset);
@@ -42,3 +45,4 @@ void list_test_send(void);
 void packet_print(const PACKET * pkt);
 void process_ack_queue(void);
 void txvr_list_print(void);
+void txvr_submit_packet(PACKET * pkt);

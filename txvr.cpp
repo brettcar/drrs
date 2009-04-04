@@ -5,6 +5,7 @@
 #import "list.h"
 #import "display.h"
 
+uint8_t g_lastid;
 static DList pktList;  /* List used to keep track of normal packets we
 			  need to transmit */
 static DList inboxList; /* List used to store packets intended for us
@@ -61,6 +62,8 @@ void txvr_isr()
 
 void txvr_setup (void)
 {
+  g_lastid = 0;
+  
   dlist_init(&pktList, free);
   dlist_init(&inboxList, free);  
   dlist_init(&ackList, free);
@@ -101,7 +104,7 @@ void txvr_setup (void)
   
   // Enable RX mode
   txvr_set_prim_rx(true); 
-  digitalWrite(txvr_ce_port, HIGH);
+  digitalWrite(txvr_ce_port, HIGH); 
 }
 
 // Set the static payload length for pipe 0 length is specified as 1
@@ -195,7 +198,7 @@ static inline uint8_t ID(const PACKET * apkt) {
   return apkt->id;
 }
 
-static inline void packet_set_header(PACKET * pkt, uint8_t sender, uint8_t receiver, uint8_t type) {
+void packet_set_header(PACKET * pkt, uint8_t sender, uint8_t receiver, uint8_t type) {
   pkt->msgheader = 0;
   pkt->msgheader |= type & 0x3;
   pkt->msgheader |= (sender & 0x7) << 2;
@@ -237,6 +240,12 @@ static void txvr_handle_ack(PACKET * newPkt)
     } else {
       free(newPkt); 
     }  
+}
+
+
+void txvr_submit_packet(PACKET * pkt)
+{
+  dlist_ins_next(&pktList, dlist_head(&pktList), pkt);  
 }
 
 uint8_t txvr_receive_payload (void)
@@ -287,6 +296,7 @@ uint8_t txvr_receive_payload (void)
       do
       {
         PACKET * thisPacket = (PACKET*) dlist_data(thisElement);
+        //TODO: fix this logic (add msgLength to condition for duped packet)
         if(ID(thisPacket) == ID(newPkt)) {
           packet_duped = true;
           break;
@@ -419,7 +429,9 @@ void packet_print(const PACKET * pkt) {
   Serial.print(") Msglen(");
   Serial.print(pkt->msglen, HEX);
   Serial.print(") Data: ");
-  Serial.print(pkt->msgpayload[0]);
+  for(int i = 0; i < pkt->msglen; i++)
+    Serial.print(pkt->msgpayload[i]);
+    
   Serial.print(" ");
   //  delay(1000);
 }

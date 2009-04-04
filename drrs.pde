@@ -26,23 +26,24 @@ void setup (void)
   display_setup_lcd ();
   display_setup();
 
-  //  keypad_setup();
+  keypad_setup();
 
   config_setup();
   Serial.print ("Setup complete. ");
-  delay(500);
+  delay(1000);
 
-  //  display_mainmenu();
+  display_mainmenu();
   
-  if (config_get_id() == 1)
-    list_test_send();
+  //  if (config_get_id() == 1)
+  //  list_test_send();
 }
 
 void loop(void)
 {
-  display_clear();
   process_ack_queue();
   queue_transmit();
-  txvr_list_print();
-  delay(random(100, 300));
+  //txvr_list_print();
+  keypad_service();
+  display_update();
+  delay(random(100, 300));  
 }
