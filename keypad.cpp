@@ -74,7 +74,7 @@ void keypad_service(void)
      {
         pktStart = (PACKET*)malloc(sizeof(PACKET));
         if (pktStart == NULL) {
-           // Oh fuck
+           // Out of memory
         }
         memset(pktStart, 0, sizeof(PACKET));
         pktData = (uint8_t*)pktStart->msgpayload;

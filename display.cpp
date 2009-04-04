@@ -39,22 +39,20 @@ void display_clear(void) {
 #endif
 }
 
-//TODO: This is getting called when we select new msg. It's printing out the main menu screen.
 void display_draw_entry(MENU_ENTRY entry)
 {
-  display_clear();
-  register int i;
-  memset(currDisplay, ' ', 32);
-  uint8_t * ptr = currDisplay;
-  memcpy(ptr, entry.message, 16);
-  ptr += 16;
-  *ptr = '<';  
-  ptr++;
-  memcpy(ptr, entry.choices[currChoice].choice, 6);
-  ptr += 6;
-  
-  const char * trailer = "    NEXT>"; 
-  memcpy(ptr, trailer, strlen(trailer));
+ display_clear();
+ register int i;
+ memset(currDisplay, ' ', 32);
+ uint8_t * ptr = currDisplay;
+ memcpy(ptr, entry.message, 16);
+ ptr += 16;
+ *ptr = '<';  
+ ptr++;
+ memcpy(ptr, entry.choices[currChoice].choice, 6);
+ ptr += 6;
+ const char * trailer = "    NEXT>"; 
+ memcpy(ptr, trailer, strlen(trailer));
 }
 
 void display_setup_lcd(void)
@@ -214,10 +212,10 @@ void display_status(void)
 
 void display_newmsg(void)
 {
-  // TODO
   currChoice = 0;
   currEntry = 2;
   inNewMsg = true;
+  display_clear();
 }
 
 /* Process a "choice" for the current MENU_ENTRY 'entry'. Basically,
