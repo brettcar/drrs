@@ -102,23 +102,23 @@ void keypad_service(void)
          pktData++;
          pktStart->msglen++;
          prevKey = -1;
-         currKey = -1;  
+         currKey = -1;
       } // End if prevKey != -1
-     else if(keypad_val == 0x03 || keypad_val == 0x07 || keypad_val == 0x0B || keypad_val == 0x0F)  // Submit mode
-     {
+      else if(keypad_val == 0x03 || keypad_val == 0x07 || keypad_val == 0x0B || keypad_val == 0x0F)  // Submit mode
+      {
         switch(keypad_val)
         {
           case 0x03: // A
-            packet_set_header(pktStart, config_get_id(), 0, NORMAL);
+            packet_set_header(pktStart, config_get_id(), 2, NORMAL);
             break;
           case 0x07: // B
-            packet_set_header(pktStart, config_get_id(), 1, NORMAL);
+            packet_set_header(pktStart, config_get_id(), 2, NORMAL);
             break;
           case 0x0B: // C
             packet_set_header(pktStart, config_get_id(), 2, NORMAL);
             break;
           case 0x0F:  // D
-            packet_set_header(pktStart, config_get_id(), 3, NORMAL);
+            packet_set_header(pktStart, config_get_id(), 2, NORMAL);
             break;       
           default:
             break; 
@@ -129,8 +129,10 @@ void keypad_service(void)
         display_back();
         inNewMsg = false;
         initial = true;
-     } // end submit mode        
-    } // end if true
+        prevKey = -1;
+        currKey = -1;
+    } // end submit mode        
+       } // end if true
    }  // End in new msg
    else if ((inSetID & 1) && keypad_val == 0x0F) 
    {
@@ -144,11 +146,12 @@ void keypad_service(void)
    { 
       display_next();
    }    
-   else // Else, for now, just CLEAR and then print to LCD panel
+/*   else // Else, for now, just CLEAR and then print to LCD panel
    {   
      // TODO: Remove the behavior for production code.
      display_clear();
      Serial.print(keypad_val, HEX);
    } 
+*/   
  }
 }

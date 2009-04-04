@@ -1,3 +1,5 @@
+#import "list.h"
+
 #define PACKET_MAX_PAYLOAD  29
 typedef struct {
   uint8_t msgheader; 
@@ -23,6 +25,7 @@ const int txvr_miso_port = 12;
 const int txvr_sck_port = 13;
 
 extern uint8_t g_lastid;
+extern DList inboxList; /* List used to store packets intended for us */
 
 void packet_set_header(PACKET * pkt, uint8_t sender, uint8_t receiver, uint8_t type);
 char read_txvr_reg(char reg);
@@ -46,3 +49,4 @@ void packet_print(const PACKET * pkt);
 void process_ack_queue(void);
 void txvr_list_print(void);
 void txvr_submit_packet(PACKET * pkt);
+void txvr_add_inbox(PACKET * pkt);

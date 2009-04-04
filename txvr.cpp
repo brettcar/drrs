@@ -2,14 +2,13 @@
 #import "WProgram.h"
 #import "txvr.h"
 #import "config.h"
-#import "list.h"
 #import "display.h"
 
 uint8_t g_lastid;
 static DList pktList;  /* List used to keep track of normal packets we
 			  need to transmit */
-static DList inboxList; /* List used to store packets intended for us
-			   as the final destination. */
+DList inboxList;
+		
 static DList ackList; /* List used to queue ACKs for trannsmission. */
 
 const char TXVR_NOP_CMD = 0xFF;  
@@ -49,6 +48,7 @@ void txvr_setup_ports (void)
 
 void txvr_isr()
 {
+  Serial.print("in ISR");
   volatile char value = read_txvr_reg(7);
   // Check if RX_DR bit is set
   if (0b01000000 & value) {
@@ -248,6 +248,12 @@ void txvr_submit_packet(PACKET * pkt)
   dlist_ins_next(&pktList, dlist_head(&pktList), pkt);  
 }
 
+// TODO: remove for production
+void txvr_add_inbox(PACKET *pkt)
+{
+  dlist_ins_next(&inboxList, dlist_head(&inboxList), pkt);
+}
+
 uint8_t txvr_receive_payload (void)
 {
   uint8_t reg = read_txvr_reg(0x07); // STATUS register
@@ -320,7 +326,7 @@ uint8_t txvr_receive_payload (void)
     // If this isn't a duplicate packet, then put it inbox list.
     if(packet_duped == false) {
       Serial.print("Put-in-inbox ");
-      dlist_ins_next(&inboxList, dlist_head(&inboxList), newPkt);
+      dlist_ins_prev(&inboxList, dlist_head(&inboxList), newPkt);
       packet_print(newPkt);
     } else {
       // TODO
