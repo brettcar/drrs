@@ -109,16 +109,16 @@ void keypad_service(void)
         switch(keypad_val)
         {
           case 0x03: // A
-            packet_set_header(pktStart, config_get_id(), 2, NORMAL);
+            packet_set_header(pktStart, config_get_id(), 0, NORMAL);
             break;
           case 0x07: // B
-            packet_set_header(pktStart, config_get_id(), 2, NORMAL);
+            packet_set_header(pktStart, config_get_id(), 1, NORMAL);
             break;
           case 0x0B: // C
             packet_set_header(pktStart, config_get_id(), 2, NORMAL);
             break;
           case 0x0F:  // D
-            packet_set_header(pktStart, config_get_id(), 2, NORMAL);
+            packet_set_header(pktStart, config_get_id(), 3, NORMAL);
             break;       
           default:
             break; 
