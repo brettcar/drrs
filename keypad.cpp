@@ -78,6 +78,11 @@ void keypad_service(void)
         }
         memset(pktStart, 0, sizeof(PACKET));
         pktData = (uint8_t*)pktStart->msgpayload;
+	
+	// Turn on cursor
+	Serial.print(0xFE, BYTE);
+	Serial.print(0x0D, BYTE);
+
         initial = false;
      }
      if(true) 
@@ -131,6 +136,11 @@ void keypad_service(void)
         initial = true;
         prevKey = -1;
         currKey = -1;
+
+	// Turn off blinking cursor
+	// Turn on cursor
+	Serial.print(0xFE, BYTE);
+	Serial.print(0x0C, BYTE);
     } // end submit mode        
        } // end if true
    }  // End in new msg
