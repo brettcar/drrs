@@ -58,9 +58,8 @@ void display_draw_entry(MENU_ENTRY entry)
 void display_setup_lcd(void)
 {
   Serial.begin (9600);  
-  // Clear LCD
-  Serial.print (0xFE, BYTE); 
-  Serial.print (0x01, BYTE);
+  display_set_bright(config_get_bright());
+  display_clear();
   memset(currDisplay, ' ', 32);
 }
 
