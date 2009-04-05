@@ -182,9 +182,9 @@ void display_config_setup(void)
   
   tmpStr = "BRIGHT";
   memcpy(entries[3].choices[2].choice, tmpStr, 6);
-  entries[3].choices[0].callback = &config_set_id;
-  entries[3].choices[1].callback = &config_set_freq;
-  entries[3].choices[2].callback = &config_set_bright;
+  entries[3].choices[0].callback = &config_set_id_callback;
+  entries[3].choices[1].callback = &config_set_freq_callback;
+  entries[3].choices[2].callback = &config_set_bright_callback;
   
   display_addback(3,3);
 }
@@ -250,4 +250,13 @@ void display_newmsg(void)
 void display_process(MENU_ENTRY entry, int choice)
 {
   entry.choices[choice].callback();
+}
+
+void display_set_bright(uint8_t level)
+{
+  // Ignore invalid levels.
+  if (level < 128 || level > 157)
+    return;
+  Serial.print(0x7C, BYTE);
+  Serial.print(level, BYTE);
 }

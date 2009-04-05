@@ -139,7 +139,7 @@ void txvr_set_tx_addr (const unsigned char *addr)
 }
 
 // Carrier is set to 2400 MHz + offset[MHz]
-void txvr_set_frequency (int offset)
+void txvr_set_frequency (uint8_t offset)
 {
   unsigned char data = (offset & 0b01111111);
   digitalWrite (txvr_csn_port, LOW);

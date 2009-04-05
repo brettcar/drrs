@@ -30,7 +30,7 @@ extern DList inboxList; /* List used to store packets intended for us */
 void packet_set_header(PACKET * pkt, uint8_t sender, uint8_t receiver, uint8_t type);
 char read_txvr_reg(char reg);
 uint8_t txvr_receive_payload (void);
-void txvr_set_frequency (int offset);
+void txvr_set_frequency (uint8_t offset);
 char txvr_set_prim_rx (bool enable);
 char txvr_set_pwr_up (void);
 void txvr_set_rf_setup_reg (void);

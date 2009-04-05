@@ -1,20 +1,18 @@
 #include "WProgram.h"
-// Config Header File which defines the config struct
-typedef struct 
-{
-  int id;
-  double freq;
-  int brightness;
-} CONFIG;
-
-//extern CONFIG g_config;
 extern int currChoice;
 extern int currEntry;
 extern boolean inSetID;
 
+#define EEPROM_CONFIG_ADDR     0
+#define EEPROM_FREQ_ADDR       1
+#define EEPROM_BRIGHT_ADDR     2
+
 uint8_t config_get_id(void);
-void config_set_id(void);
-void config_set_freq(void);
-void config_set_bright(void);
+void config_set_id_callback(void);
 void config_next_id(void);
+void config_set_freq_callback();
+void config_set_bright_callback();
 void config_setup(void);
+void config_set_id(uint8_t newId);
+void config_set_freq(uint8_t offset);
+void config_set_bright(uint8_t level);

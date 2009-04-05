@@ -30,3 +30,4 @@ void display_status(void);
 void display_config_setup(void);
 void display_config(void);
 void display_draw_entry(MENU_ENTRY entry);
+void display_set_bright(uint8_t level);
