@@ -41,9 +41,10 @@ void setup (void)
 
 void loop(void)
 {
+  
   process_ack_queue();
   queue_transmit();
-//  txvr_list_print();
+  //  txvr_list_print();
   keypad_service();
   display_update();
   delay(random(100, 300));  

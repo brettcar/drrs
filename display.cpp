@@ -58,7 +58,7 @@ void display_draw_entry(MENU_ENTRY entry)
 void display_setup_lcd(void)
 {
   Serial.begin (9600);  
-  display_set_bright(config_get_bright());
+  //display_set_bright(config_get_bright());
   display_clear();
   memset(currDisplay, ' ', 32);
 }

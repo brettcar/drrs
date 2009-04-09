@@ -148,6 +148,18 @@ void keypad_service(void)
    {
      config_next_id();
    }
+   else if((inSetID & 1) && keypad_val == 0x0C)
+   {
+     inSetID = false;
+     display_back();
+   }
+   else if((inSetBright & 1) && keypad_val == 0x0F)
+     config_next_bright();
+   else if((inSetBright & 1) && keypad_val == 0x0C)
+   {
+     inSetBright = false;
+     display_back();
+   }
    else if (keypad_val == 0x0C)  // Choice 0 - *
    {
      display_process(entries[currEntry], currChoice);   // Yikes, entries is an external global!
