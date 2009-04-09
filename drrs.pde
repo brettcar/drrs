@@ -9,7 +9,7 @@ void setup (void)
 {
   txvr_setup_ports();
   keypad_setup_ports();
-  
+    
   /* Begin Configure SPI */
   SPCR = 0b01010010;
   int clr = SPSR;

@@ -16,6 +16,9 @@ const char TXVR_NOP_CMD = 0xFF;
 volatile bool txvr_rx_if = false;
 volatile bool txvr_tx_if = false;
 
+const int led_red = 18;
+const int led_green = 17;
+
 char spi_transfer (volatile char data)
 {
   SPDR = data;
@@ -64,6 +67,10 @@ void txvr_setup (void)
 {
   g_lastid = 0;
   
+  pinMode(led_red, OUTPUT);
+  pinMode(led_green, OUTPUT);
+  
+  digitalWrite(led_red, HIGH);
   dlist_init(&pktList, free);
   dlist_init(&inboxList, free);  
   dlist_init(&ackList, free);
@@ -328,6 +335,7 @@ uint8_t txvr_receive_payload (void)
       Serial.print("Put-in-inbox ");
       dlist_ins_prev(&inboxList, dlist_head(&inboxList), newPkt);
       packet_print(newPkt);
+      digitalWrite(led_green, HIGH);
     } else {
       // TODO
       // free(newPkt);

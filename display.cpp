@@ -216,7 +216,7 @@ void display_inbox(void)
   // Inbox is MENU_ENTRY 1 (entries[1])
   currChoice = 0;
   currEntry = 1; 
-  
+  digitalWrite(17, LOW);
   // Start a for loop that's going to find all the msgs in the inbox 
   // And assign them the proper callback function
   int i;
