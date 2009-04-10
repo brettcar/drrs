@@ -15,7 +15,7 @@ void config_setup(void)
   display_clear();
   delay(50);
   config_set_bright(157);
-  Serial.print("Config Setup Complete");
+  //Serial.print("Config Setup Complete");
 }
 
 void config_set_id_callback(void)

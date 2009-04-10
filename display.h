@@ -7,7 +7,7 @@ typedef struct {
 
 typedef struct {
   char message[16];        /* 16-character string to display on top line for this menu entry. No terminator, use spaces for unused chars. */
-  CHOICE choices[4];       /* Two choices to display on second line. */
+  CHOICE choices[10];       /* Two choices to display on second line. */
 } MENU_ENTRY;
 
 const char keymap[][5] = {{'1',' ',' ',' ',' '}, {'2','A','B','C',' '}, {'3','D','E','F', ' '}, {' ',' ',' ',' ',' '}, 

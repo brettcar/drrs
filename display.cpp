@@ -227,7 +227,7 @@ void display_inbox(void)
      memcpy(entries[currEntry].choices[i].choice, tmp, 6);
      entries[currEntry].choices[i].callback = &display_show_currMsg;
   }
-  display_addback(1,i == 0 ? 1 : i);
+  display_addback(1, i == 0 ? 1 : i);
   display_draw_entry(entries[currEntry]);    
 }
 
@@ -241,6 +241,9 @@ void display_newmsg(void)
   currChoice = 0;
   currEntry = 2;
   inNewMsg = true;
+  // Turn on curso
+  Serial.print(0xFE, BYTE);
+  Serial.print(0x0D, BYTE);
   display_clear();
 }
 

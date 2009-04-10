@@ -29,7 +29,7 @@ void setup (void)
   keypad_setup();
 
   config_setup();
-  Serial.print ("Setup complete. ");
+  //Serial.print ("Setup complete. ");
   delay(1000);
 
   display_clear();

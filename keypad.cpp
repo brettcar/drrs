@@ -42,10 +42,10 @@ void keypad_setup_ports(void)
 void keypad_setup(void)
 {
   //d5 -> LSB ... d8 -> MSB
-  Serial.print("Setup Keypad");
+  //Serial.print("Setup Keypad");
   keypad_if = false;
   attachInterrupt(1, keypad_isr, FALLING);
-  Serial.print("Setup Keypad Complete");
+  //Serial.print("Setup Keypad Complete");
   display_clear();  
 }
 
@@ -78,10 +78,6 @@ void keypad_service(void)
         }
         memset(pktStart, 0, sizeof(PACKET));
         pktData = (uint8_t*)pktStart->msgpayload;
-	
-	// Turn on cursor
-	Serial.print(0xFE, BYTE);
-	Serial.print(0x0D, BYTE);
 
         initial = false;
      }

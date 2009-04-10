@@ -287,14 +287,15 @@ uint8_t txvr_receive_payload (void)
   digitalWrite(txvr_csn_port, HIGH);
   
   // If this is a packet sent to US by US... Toss it out!
-  if(SENDER(newPkt) == config_get_id()) {
-    free(newPkt);
-    Serial.print("ByUs ");
-  }  
+  // Garbage data packet, toss out.  
+ if(SENDER(newPkt) == config_get_id() || DESTINATION(newPkt) > 3 || (TYPE(newPkt) != ACK && TYPE(newPkt) != NORMAL))
+ {
+   free(newPkt);
+ } 
   else if(TYPE(newPkt) == ACK) {
     // Check if this received packet is an ack intended for us. 
     // If it is, then deal with it and do not add it to the linked list
-    Serial.print("Call-handle-ack ");
+    //Serial.print("Call-handle-ack ");
     txvr_handle_ack(newPkt);
   }
   else if(TYPE(newPkt) == NORMAL && DESTINATION(newPkt) == config_get_id()) {
@@ -321,20 +322,20 @@ uint8_t txvr_receive_payload (void)
     // Send out an ack. 
     PACKET  * ack = (PACKET*)malloc(sizeof(PACKET));
     if (ack == NULL) {
-      Serial.print("OOMem"); 
+      //Serial.print("OOMem"); 
     } else {
       packet_set_header(ack, config_get_id(), SENDER(newPkt), ACK);
       ack->id = ID(newPkt);
       ack->msglen = 0;      
       dlist_ins_next(&ackList, dlist_head(&ackList), ack);
-      Serial.print("QUEUED ACK");
+      //Serial.print("QUEUED ACK");
     }
     
     // If this isn't a duplicate packet, then put it inbox list.
     if(packet_duped == false) {
-      Serial.print("Put-in-inbox ");
+      //Serial.print("Put-in-inbox ");
       dlist_ins_prev(&inboxList, dlist_head(&inboxList), newPkt);
-      packet_print(newPkt);
+      //packet_print(newPkt);
       digitalWrite(led_green, HIGH);
     } else {
       // TODO
@@ -342,8 +343,8 @@ uint8_t txvr_receive_payload (void)
     }
   } else {
     // for any other kind of packet, ACK or NORMAL, put it in the list
-    Serial.print("Other-pkt ");
-    packet_print(newPkt);
+    //Serial.print("Other-pkt ");
+    //packet_print(newPkt);
     
     boolean packet_duped = false;
     // Check to see if we already have this message in our inbox. If
@@ -364,7 +365,7 @@ uint8_t txvr_receive_payload (void)
     
     if(packet_duped == false) {
       dlist_ins_next(&pktList, dlist_head(&pktList), newPkt);  
-      Serial.print("put in txList");
+      //Serial.print("put in txList");
     } else {
       // TODO
       // free(newPkt);
@@ -563,7 +564,7 @@ void process_ack_queue(void) {
   DListElmt * thisAck = dlist_head(&ackList);
   do {
     txvr_transmit_payload((PACKET*)dlist_data(thisAck));
-    Serial.print("SENT-AN-ACK ");
+    //Serial.print("SENT-AN-ACK ");
     thisAck = dlist_next(thisAck);
   } while (thisAck != NULL);
 
