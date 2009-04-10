@@ -288,7 +288,7 @@ uint8_t txvr_receive_payload (void)
   
   // If this is a packet sent to US by US... Toss it out!
   // Garbage data packet, toss out.  
- if(SENDER(newPkt) == config_get_id() || DESTINATION(newPkt) > 3 || TYPE(newPkt == RESERVED_0)
+ if(SENDER(newPkt) == config_get_id() || DESTINATION(newPkt) > 3 || TYPE(newPkt) == RESERVED_0)
  {
    free(newPkt);
  } 
