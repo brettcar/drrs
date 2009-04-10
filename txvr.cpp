@@ -51,7 +51,7 @@ void txvr_setup_ports (void)
 
 void txvr_isr()
 {
-  Serial.print("in ISR");
+  //Serial.print("in ISR");
   volatile char value = read_txvr_reg(7);
   // Check if RX_DR bit is set
   if (0b01000000 & value) {
@@ -288,7 +288,7 @@ uint8_t txvr_receive_payload (void)
   
   // If this is a packet sent to US by US... Toss it out!
   // Garbage data packet, toss out.  
- if(SENDER(newPkt) == config_get_id() || DESTINATION(newPkt) > 3 || (TYPE(newPkt) != ACK && TYPE(newPkt) != NORMAL))
+ if(SENDER(newPkt) == config_get_id() || DESTINATION(newPkt) > 3 || TYPE(newPkt == RESERVED_0)
  {
    free(newPkt);
  } 
@@ -298,7 +298,7 @@ uint8_t txvr_receive_payload (void)
     //Serial.print("Call-handle-ack ");
     txvr_handle_ack(newPkt);
   }
-  else if(TYPE(newPkt) == NORMAL && DESTINATION(newPkt) == config_get_id()) {
+  else if(TYPE(newPkt) != ACK && DESTINATION(newPkt) == config_get_id()) {
     // Else if this is a normal packet intended for us, put it in the inboxList
     // and send out an ack msg.
     boolean packet_duped = false;
@@ -517,12 +517,11 @@ static boolean txvr_handle_tx_packet(PACKET * packet)
       packet_set_header(packet, sender, dest, RESERVED_0);      
       break;
     case RESERVED_0:
-      packet_set_header(packet, sender, dest, NORMAL);      
+      packet_set_header(packet, sender, dest, NORMAL);
       txvr_transmit_payload(packet);
       packet_set_header(packet, sender, dest, RESERVED_1);      
       break;
     case RESERVED_1:
-      packet_set_header(packet, sender, dest, NORMAL);      
       txvr_transmit_payload(packet);
       return true;
       // Undefined case
